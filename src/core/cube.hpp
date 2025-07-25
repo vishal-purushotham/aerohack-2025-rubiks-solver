@@ -1,6 +1,3 @@
-// FILE: src/core/cube.hpp
-// ACTION: Replace the entire file with this content.
-
 #ifndef RUBIKS_CUBE_HPP
 #define RUBIKS_CUBE_HPP
 

@@ -19,3 +19,6 @@ psutil>=5.8.0
 
 # Configuration and utilities
 configparser>=5.0.0
+
+# 3D Visualization
+vpython>=7.6.0

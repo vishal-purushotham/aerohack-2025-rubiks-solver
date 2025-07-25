@@ -20,6 +20,7 @@ from qbr.constants import (
     E_INCORRECTLY_SCANNED, E_ALREADY_SOLVED
 )
 from config_manager import config, get_solver_config, get_performance_config, get_colors_config
+from simulation_ui import Cube3DVisualizer # Add this import
 
 class AeroHackARSolver:
     """Professional AR + Solver integration for AeroHack 2025."""
@@ -250,6 +251,17 @@ def main():
                 print()
                 print("✅ Professional solution generated successfully!")
                 print("You can now apply these moves to solve your cube.")
+                
+                # --- NEW 3D VISUALIZATION ---
+                print("\n🚀 Launching 3D solution animation...")
+                try:
+                    visualizer = Cube3DVisualizer()
+                    visualizer.animate_solution(solution)
+                    print("✅ 3D animation complete.")
+                except Exception as e:
+                    print(f"❌ Failed to launch 3D visualization: {e}")
+                # --------------------------
+                    
             else:
                 print("❌ Professional solving failed")
         else:
