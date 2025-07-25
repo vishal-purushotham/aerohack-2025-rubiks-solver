@@ -6,3 +6,16 @@ numpy>=1.21.0
 pandas>=1.3.0
 pytest>=6.0.0
 pytest-benchmark>=3.4.0
+
+# Kociemba solver
+kociemba>=1.2.0
+
+# Computer vision and image processing
+Pillow>=8.0.0
+scikit-image>=0.18.0
+
+# Performance monitoring
+psutil>=5.8.0
+
+# Configuration and utilities
+configparser>=5.0.0

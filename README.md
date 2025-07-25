@@ -19,3 +19,31 @@ GPU-accelerated, AI-guided, blockchain-verifiable Rubik's Cube solver combining 
 - LZ4 compression library
 
 ## Quick Start
+
+```bash
+# Build the project
+mkdir build && cd build
+cmake .. && cmake --build . --config Release
+
+# Run solver
+./Release/rubiks_solver "R U R' U' R U R' U'"
+```
+
+## Architecture
+
+- **Core Engine**: Bitboard representation with move lookup tables
+- **Pattern Databases**: LZ4-compressed heuristic databases (≤100MB)
+- **Neural Heuristic**: 50k-parameter MLP trained via self-supervision
+- **GPU Kernels**: Parallel IDA* with symmetry pruning
+- **AR Interface**: Real-time cube scanning and visualization
+
+## Performance Targets
+
+- Median solve time: <200ms (CPU), <5ms (GPU)
+- Solution length: ≤20 moves (median)
+- Memory footprint: <120MB
+- Accuracy: >99% optimal solutions
+
+## License
+
+MIT License - see LICENSE file for details.

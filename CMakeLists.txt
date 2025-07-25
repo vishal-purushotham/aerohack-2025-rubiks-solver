@@ -56,8 +56,12 @@ endif()
 
 # Tests
 enable_testing()
-add_executable(tests
+add_executable(test_cube
     tests/test_cube.cpp
+)
+target_link_libraries(test_cube rubiks_core)
+
+add_executable(test_solver
     tests/test_solver.cpp
 )
-target_link_libraries(tests rubiks_core)
+target_link_libraries(test_solver rubiks_core)

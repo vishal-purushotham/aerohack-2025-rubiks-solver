@@ -39,3 +39,93 @@
 
 # debug information files
 *.dwo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build directories
+build/
+dist/
+target/
+out/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Professional QBR and Kociemba lookup tables (these can be large)
+src/python/twophase/tables/
+src/python/twophase/*.dat
+src/python/twophase/*.bin
+src/python/qbr/calibration_data/
+*.dat
+*.bin
+
+# Configuration files with sensitive data
+config/secrets.json
+.env
+*.env
+
+# Test artifacts
+test_results/
+coverage/
+*.coverage
+
+# Performance benchmarks
+benchmarks/results/
+performance_logs/
+
+# Professional solver cache files
+src/python/twophase/cache/
+solver_cache/
+
+# OpenCV camera calibration files
+camera_calibration/
+*.xml
+*.yml
+
+# Large model files (if any)
+*.model
+*.pkl
+*.h5
