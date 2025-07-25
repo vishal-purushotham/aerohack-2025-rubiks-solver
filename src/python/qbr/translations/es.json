@@ -1,0 +1,81 @@
+{
+  "es": {
+    "interface": {
+      "title": "QBR - Solucionador de Cubo de Rubik",
+      "webcam": "Webcam",
+      "camera": "Cámara",
+      "scan": "Escanear",
+      "solve": "Resolver",
+      "reset": "Reiniciar",
+      "capture": "Capturar",
+      "stop": "Detener",
+      "language": "Idioma",
+      "settings": "Configuración",
+      "help": "Ayuda",
+      "about": "Acerca de"
+    },
+    "scanning": {
+      "instructions": "Coloque el cubo delante de la cámara y haga clic en escanear",
+      "scanning_face": "Escaneando cara %{face}",
+      "face_complete": "Cara %{face} completada",
+      "scan_complete": "Escaneo completo",
+      "press_space": "Presione ESPACIO para continuar",
+      "position_cube": "Posicione el cubo correctamente",
+      "detecting_colors": "Detectando colores...",
+      "adjusting_position": "Ajustando posición...",
+      "scan_again": "Escanear de nuevo"
+    },
+    "solving": {
+      "solving": "Resolviendo...",
+      "solution_found": "Solución encontrada",
+      "no_solution": "No se encontró solución",
+      "invalid_cube": "Cubo inválido",
+      "moves": "Movimientos",
+      "step": "Paso %{step}",
+      "total_moves": "Total de movimientos: %{count}",
+      "estimated_time": "Tiempo estimado: %{time} segundos"
+    },
+    "colors": {
+      "white": "Blanco",
+      "yellow": "Amarillo",
+      "red": "Rojo",
+      "orange": "Naranja",
+      "blue": "Azul",
+      "green": "Verde"
+    },
+    "faces": {
+      "front": "Frontal",
+      "back": "Trasera",
+      "left": "Izquierda",
+      "right": "Derecha",
+      "up": "Arriba",
+      "down": "Abajo"
+    },
+    "moves": {
+      "R": "Derecha",
+      "L": "Izquierda",
+      "U": "Arriba",
+      "D": "Abajo",
+      "F": "Frontal",
+      "B": "Trasera"
+    },
+    "errors": {
+      "camera_not_found": "Cámara no encontrada",
+      "camera_access_denied": "Acceso a cámara denegado",
+      "scanning_failed": "Falló el escaneo",
+      "invalid_state": "Estado del cubo inválido",
+      "solver_error": "Error del solucionador",
+      "network_error": "Error de red",
+      "unknown_error": "Error desconocido"
+    },
+    "status": {
+      "ready": "Listo",
+      "scanning": "Escaneando",
+      "solving": "Resolviendo",
+      "complete": "Completo",
+      "error": "Error",
+      "waiting": "Esperando",
+      "processing": "Procesando"
+    }
+  }
+}

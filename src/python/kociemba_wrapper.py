@@ -12,6 +12,9 @@ from typing import Tuple, Optional
 # Add the twophase directory to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'twophase'))
 
+# Import configuration
+from config_manager import config
+
 try:
     # Import the professional Hkociemba two-phase solver
     from .twophase import solve as twophase_solve, FaceCube, CubieCube
@@ -70,14 +73,14 @@ class KociembaSolver:
             print("Using basic pattern solver...")
             self.solver_ready = True
     
-    def solve(self, cube_string: str, max_length: int = 22, timeout: int = 10) -> str:
+    def solve(self, cube_string: str, max_length: int = None, timeout: int = None) -> str:
         """
         Solve a cube from its string representation.
         
         Args:
             cube_string: 54-character string (URFDLB format)
-            max_length: Maximum solution length
-            timeout: Timeout in seconds
+            max_length: Maximum solution length (defaults from config)
+            timeout: Timeout in seconds (defaults from config)
             
         Returns:
             Solution string or error message
@@ -85,6 +88,12 @@ class KociembaSolver:
         if not self.solver_ready:
             return "Error: Solver not initialized"
         
+        # Use config defaults if not provided
+        if max_length is None:
+            max_length = config.get('solver', {}).get('max_length', 25)
+        if timeout is None:
+            timeout = config.get('solver', {}).get('timeout_seconds', 10)
+
         if not self.validate_cube_format(cube_string):
             return "Error: Invalid cube string format"
         
@@ -118,16 +127,20 @@ class KociembaSolver:
     
     def validate_cube_format(self, cube_string: str) -> bool:
         """Validate basic cube string format."""
-        if len(cube_string) != 54:
+        expected_length = config.get('solver', {}).get('cube_string_length', 54)
+        if len(cube_string) != expected_length:
             return False
         
         # Check that we have exactly 9 of each face color
+        expected_faces = config.get('colors', {}).get('expected_faces', 6)
+        stickers_per_face = config.get('colors', {}).get('stickers_per_face', 9)
+        
         face_colors = set(cube_string)
-        if len(face_colors) != 6:
+        if len(face_colors) != expected_faces:
             return False
         
         for color in face_colors:
-            if cube_string.count(color) != 9:
+            if cube_string.count(color) != stickers_per_face:
                 return False
         
         return True
@@ -178,11 +191,12 @@ class KociembaSolver:
         Returns a simple solution pattern.
         """
         # This is a placeholder - in practice you'd implement basic layer-by-layer
-        if cube_string == "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB":
+        solved_cube = config.get('test_cube', "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB")
+        if cube_string == solved_cube:
             return ""  # Already solved
         
         # Return a typical scramble-unscramble pattern
-        return "R U R' U' R U R' U' R U R' U' F R F' U2 R U R' U'"
+        return config.get('fallback_solution', "R U R' U' R U R' U' R U R' U' F R F' U2 R U R' U'")
 
 # Global solver instance
 kociemba_solver = KociembaSolver()

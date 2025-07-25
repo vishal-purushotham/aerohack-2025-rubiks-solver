@@ -19,6 +19,7 @@ from qbr.constants import (
     STICKER_AREA, CUBE_PALETTE, CUBE_FACE_MAP,
     E_INCORRECTLY_SCANNED, E_ALREADY_SOLVED
 )
+from config_manager import config, get_solver_config, get_performance_config, get_colors_config
 
 class AeroHackARSolver:
     """Professional AR + Solver integration for AeroHack 2025."""
@@ -31,13 +32,19 @@ class AeroHackARSolver:
         print("=" * 60)
         print()
         
+        # Load configuration
+        self.solver_config = get_solver_config()
+        self.performance_config = get_performance_config()
+        self.colors_config = get_colors_config()
+        
         self.solve_count = 0
-        self.total_solve_time = 0.0
+        self.total_solve_time = self.performance_config.get('initial_solve_time', 0.0)
         self.solutions = []
         
         # Initialize professional QBR webcam scanner
         self.webcam = Webcam()
         print("✓ Professional QBR scanner initialized")
+        print("✓ Configuration manager loaded")
     
     def run_ar_interface(self) -> Optional[str]:
         """Run the complete professional AR interface."""
@@ -80,7 +87,8 @@ class AeroHackARSolver:
     
     def _validate_cube_state(self, cube_state: str) -> bool:
         """Validate cube state using professional algorithms."""
-        if not cube_state or len(cube_state) != 54:
+        expected_length = self.colors_config.get('total_stickers', 54)
+        if not cube_state or len(cube_state) != expected_length:
             print(f"Invalid length: {len(cube_state) if cube_state else 0}, expected 54")
             return False
         
@@ -106,7 +114,11 @@ class AeroHackARSolver:
         print("🧩 Solving cube with professional Hkociemba algorithm...")
         start_time = time.time()
         
-        solution = kociemba_solver.solve(cube_state, max_length=25, timeout=10)
+        # Get solver configuration
+        max_length = self.solver_config.get('max_length', 25)
+        timeout = self.solver_config.get('timeout_seconds', 10)
+        
+        solution = kociemba_solver.solve(cube_state, max_length=max_length, timeout=timeout)
         
         solve_time = time.time() - start_time
         
@@ -150,7 +162,12 @@ class AeroHackARSolver:
             print(f"✓ {message}")
             
             start_time = time.time()
-            solution = kociemba_solver.solve(cube_string, max_length=25, timeout=10)
+            
+            # Get solver configuration
+            max_length = self.solver_config.get('max_length', 25)
+            timeout = self.solver_config.get('timeout_seconds', 10)
+            
+            solution = kociemba_solver.solve(cube_string, max_length=max_length, timeout=timeout)
             solve_time = time.time() - start_time
             
             if not solution.startswith("Error"):
@@ -187,10 +204,11 @@ class AeroHackARSolver:
         print("🎮 Demo Mode - Testing with known cube states")
         print()
         
-        # Test cases
+        # Get test cases from configuration
+        demo_cubes = config.get('demo_cubes', {})
         test_cases = [
-            ("Solved cube", "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"),
-            ("Simple scramble", "DRLUUBFBRBLUFRLRLRLLLFFUUFRUBUUBDUUDLDRBDFRFDFFBBUDUL"),
+            ("Solved cube", demo_cubes.get('solved', 'UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB')),
+            ("Simple scramble", demo_cubes.get('simple_scramble', 'DRLUUBFBRBLUFRLRLRLLLFFUUFRUBUUBDUUDLDRBDFRFDFFBBUDUL')),
         ]
         
         for name, cube_string in test_cases:

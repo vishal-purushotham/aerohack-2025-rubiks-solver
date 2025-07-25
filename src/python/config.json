@@ -1,0 +1,66 @@
+{
+  "solver": {
+    "max_length": 25,
+    "timeout_seconds": 10,
+    "cube_string_length": 54
+  },
+  "test_cube": "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB",
+  "fallback_solution": "R U R' U' R U R' U' R U R' U' F R F' U2 R U R' U'",
+  "demo_cubes": {
+    "solved": "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB",
+    "simple_scramble": "DRLUUBFBRBLUFRLRLRLLLFFUUFRUBUUBDUUDLDRBDFRFDFFBBUDUL"
+  },
+  "camera": {
+    "camera_index": 0,
+    "resolution": {
+      "width": 640,
+      "height": 480
+    },
+    "detection": {
+      "min_aspect_ratio": 0.8,
+      "max_aspect_ratio": 1.2,
+      "min_sticker_width": 30,
+      "max_sticker_width": 60,
+      "min_area_ratio": 0.4,
+      "contour_approx_vertices": 4
+    },
+    "calibration": {
+      "neighbor_search_radius": 1.5,
+      "expected_neighbors": 9,
+      "expected_stickers_per_color": 9
+    },
+    "ui": {
+      "text_offset_y": 20,
+      "color_grid_x1": 90,
+      "corner_text_offset": 20,
+      "stroke_width": 1
+    },
+    "controls": {
+      "escape_key": 27,
+      "space_key": 32
+    },
+    "default_color": [255, 255, 255]
+  },
+  "performance": {
+    "initial_solve_time": 0.0,
+    "memory_unit": "MB",
+    "stats_filename": "performance_stats.json"
+  },
+  "colors": {
+    "expected_faces": 6,
+    "stickers_per_face": 9,
+    "total_stickers": 54
+  },
+  "display": {
+    "font_sizes": {
+      "small": 12,
+      "medium": 16,
+      "large": 20
+    },
+    "colors": {
+      "stroke": [0, 0, 0],
+      "background": [255, 255, 255],
+      "text": [0, 0, 0]
+    }
+  }
+}

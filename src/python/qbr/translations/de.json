@@ -1,0 +1,81 @@
+{
+  "de": {
+    "interface": {
+      "title": "QBR - Rubiks Würfel Löser",
+      "webcam": "Webcam",
+      "camera": "Kamera",
+      "scan": "Scannen",
+      "solve": "Lösen",
+      "reset": "Zurücksetzen",
+      "capture": "Aufnehmen",
+      "stop": "Stoppen",
+      "language": "Sprache",
+      "settings": "Einstellungen",
+      "help": "Hilfe",
+      "about": "Über"
+    },
+    "scanning": {
+      "instructions": "Platzieren Sie den Würfel vor die Kamera und klicken Sie auf Scannen",
+      "scanning_face": "Scanne Seite %{face}",
+      "face_complete": "Seite %{face} abgeschlossen",
+      "scan_complete": "Scan abgeschlossen",
+      "press_space": "Drücken Sie LEERTASTE zum Fortfahren",
+      "position_cube": "Positionieren Sie den Würfel korrekt",
+      "detecting_colors": "Farben erkennen...",
+      "adjusting_position": "Position anpassen...",
+      "scan_again": "Erneut scannen"
+    },
+    "solving": {
+      "solving": "Lösen...",
+      "solution_found": "Lösung gefunden",
+      "no_solution": "Keine Lösung gefunden",
+      "invalid_cube": "Ungültiger Würfel",
+      "moves": "Züge",
+      "step": "Schritt %{step}",
+      "total_moves": "Gesamtzüge: %{count}",
+      "estimated_time": "Geschätzte Zeit: %{time} Sekunden"
+    },
+    "colors": {
+      "white": "Weiß",
+      "yellow": "Gelb",
+      "red": "Rot",
+      "orange": "Orange",
+      "blue": "Blau",
+      "green": "Grün"
+    },
+    "faces": {
+      "front": "Vorne",
+      "back": "Hinten",
+      "left": "Links",
+      "right": "Rechts",
+      "up": "Oben",
+      "down": "Unten"
+    },
+    "moves": {
+      "R": "Rechts",
+      "L": "Links",
+      "U": "Oben",
+      "D": "Unten",
+      "F": "Vorne",
+      "B": "Hinten"
+    },
+    "errors": {
+      "camera_not_found": "Kamera nicht gefunden",
+      "camera_access_denied": "Kamerazugriff verweigert",
+      "scanning_failed": "Scannen fehlgeschlagen",
+      "invalid_state": "Ungültiger Würfelzustand",
+      "solver_error": "Löser-Fehler",
+      "network_error": "Netzwerkfehler",
+      "unknown_error": "Unbekannter Fehler"
+    },
+    "status": {
+      "ready": "Bereit",
+      "scanning": "Scannen",
+      "solving": "Lösen",
+      "complete": "Abgeschlossen",
+      "error": "Fehler",
+      "waiting": "Warten",
+      "processing": "Verarbeiten"
+    }
+  }
+}

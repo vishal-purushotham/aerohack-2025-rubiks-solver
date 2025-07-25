@@ -3,6 +3,8 @@
 # vim: fenc=utf-8 ts=4 sw=4 et
 
 import math
+import json
+import os
 from .constants import LOCALES
 
 def get_next_locale(locale):
@@ -12,6 +14,68 @@ def get_next_locale(locale):
     if index + 1 >= len(keys):
         return keys[0]
     return keys[index + 1]
+
+
+class I18n:
+    """Simple internationalization class for QBR."""
+    
+    def __init__(self, locale='en'):
+        self.locale = locale
+        self.translations = {}
+        self.load_translations()
+    
+    def load_translations(self):
+        """Load translations for the current locale."""
+        translations_path = os.path.join(os.path.dirname(__file__), 'translations', f'{self.locale}.json')
+        try:
+            with open(translations_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                self.translations = data.get(self.locale, {})
+        except FileNotFoundError:
+            # Fallback to English if translation file not found
+            try:
+                en_path = os.path.join(os.path.dirname(__file__), 'translations', 'en.json')
+                with open(en_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.translations = data.get('en', {})
+            except FileNotFoundError:
+                self.translations = {}
+    
+    def t(self, key, **kwargs):
+        """
+        Translate a key with optional parameters.
+        
+        Args:
+            key: Translation key (can use dot notation for nested keys)
+            **kwargs: Parameters to substitute in the translation
+            
+        Returns:
+            str: Translated text
+        """
+        try:
+            # Handle nested keys with dot notation
+            keys = key.split('.')
+            translation = self.translations
+            for k in keys:
+                translation = translation[k]
+            
+            # Substitute parameters
+            if kwargs:
+                for param, value in kwargs.items():
+                    translation = translation.replace(f'%{{{param}}}', str(value))
+            
+            return translation
+        except (KeyError, TypeError):
+            return key  # Return key itself if translation not found
+    
+    def set_locale(self, locale):
+        """Change the current locale and reload translations."""
+        self.locale = locale
+        self.load_translations()
+
+
+# Global i18n instance
+i18n = I18n()
 
 # Taken from https://stackoverflow.com/a/16020102
 def bgr2lab(inputColor):

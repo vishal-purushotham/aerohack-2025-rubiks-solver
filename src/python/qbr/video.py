@@ -3,9 +3,16 @@
 # vim: fenc=utf-8 ts=4 sw=4 et
 
 import cv2
+import os
+import sys
 from .colordetection import color_detector
 from .config import config
 from .helpers import get_next_locale
+
+# Add parent directory to path for main config import
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from config_manager import get_camera_config
+
 from PIL import ImageFont, ImageDraw, Image
 import numpy as np
 from .constants import (
@@ -31,22 +38,32 @@ class Webcam:
 
     def __init__(self):
         print('Starting webcam... (this might take a while, please be patient)')
-        self.cam = cv2.VideoCapture(0)
+        
+        # Initialize camera configuration
+        self.camera_config = get_camera_config()
+        self.detection_config = self.camera_config.get('detection', {})
+        self.calibration_config = self.camera_config.get('calibration', {})
+        self.ui_config = self.camera_config.get('ui', {})
+        self.controls_config = self.camera_config.get('controls', {})
+        
+        # Get camera index from config
+        camera_index = self.camera_config.get('camera_index', 0)
+        self.cam = cv2.VideoCapture(camera_index)
         print('Webcam successfully started')
 
         self.colors_to_calibrate = ['green', 'red', 'blue', 'orange', 'white', 'yellow']
         self.average_sticker_colors = {}
         self.result_state = {}
 
-        self.snapshot_state = [(255,255,255), (255,255,255), (255,255,255),
-                               (255,255,255), (255,255,255), (255,255,255),
-                               (255,255,255), (255,255,255), (255,255,255)]
-        self.preview_state  = [(255,255,255), (255,255,255), (255,255,255),
-                               (255,255,255), (255,255,255), (255,255,255),
-                               (255,255,255), (255,255,255), (255,255,255)]
+        # Initialize with default color from config
+        default_color = tuple(self.camera_config.get('default_color', [255, 255, 255]))
+        self.snapshot_state = [default_color] * 9
+        self.preview_state = [default_color] * 9
 
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        # Set resolution from config
+        resolution = self.camera_config.get('resolution', {'width': 640, 'height': 480})
+        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, resolution['width'])
+        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution['height'])
         self.width = int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
@@ -109,12 +126,21 @@ class Webcam:
                 # Find aspect ratio of boundary rectangle around the countours.
                 ratio = w / float(h)
 
-                # Check if contour is close to a square.
-                if ratio >= 0.8 and ratio <= 1.2 and w >= 30 and w <= 60 and area / (w * h) > 0.4:
+                # Check if contour is close to a square using configuration values.
+                min_ratio = self.detection_config.get('min_aspect_ratio', 0.8)
+                max_ratio = self.detection_config.get('max_aspect_ratio', 1.2)
+                min_width = self.detection_config.get('min_sticker_width', 30)
+                max_width = self.detection_config.get('max_sticker_width', 60)
+                min_area_ratio = self.detection_config.get('min_area_ratio', 0.4)
+                
+                if (ratio >= min_ratio and ratio <= max_ratio and 
+                    w >= min_width and w <= max_width and 
+                    area / (w * h) > min_area_ratio):
                     final_contours.append((x, y, w, h))
 
         # Return early if we didn't found 9 or more contours.
-        if len(final_contours) < 9:
+        expected_contours = self.calibration_config.get('expected_neighbors', 9)
+        if len(final_contours) < expected_contours:
             return []
 
         # Step 2/4: Find the contour that has 9 neighbors (including itself)
@@ -126,7 +152,7 @@ class Webcam:
             contour_neighbors[index] = []
             center_x = x + w / 2
             center_y = y + h / 2
-            radius = 1.5
+            radius = self.calibration_config.get('neighbor_search_radius', 1.5)
 
             # Create 9 positions for the current contour which are the
             # neighbors. We'll use this to check how many neighbors each contour
@@ -179,7 +205,8 @@ class Webcam:
         # across it, then the 'neighbors' are actually all the contours we're
         # looking for.
         for (contour, neighbors) in contour_neighbors.items():
-            if len(neighbors) == 9:
+            expected_neighbors = self.calibration_config.get('expected_neighbors', 9)
+            if len(neighbors) == expected_neighbors:
                 found = True
                 final_contours = neighbors
                 break
@@ -212,7 +239,8 @@ class Webcam:
                     color_count[key] = 1
                 else:
                     color_count[key] = color_count[key] + 1
-        invalid_colors = [k for k, v in color_count.items() if v != 9]
+        stickers_per_color = self.calibration_config.get('expected_stickers_per_color', 9)
+        invalid_colors = [k for k, v in color_count.items() if v != stickers_per_color]
         return len(invalid_colors) == 0
 
     def draw_contours(self, contours):
@@ -307,7 +335,7 @@ class Webcam:
 
     def draw_current_color_to_calibrate(self):
         """Display the current side's color that needs to be calibrated."""
-        offset_y = 20
+        offset_y = self.ui_config.get('text_offset_y', 20)
         font_size = int(TEXT_SIZE * 1.25)
         if self.done_calibrating:
             messages = [
@@ -325,9 +353,9 @@ class Webcam:
 
     def draw_calibrated_colors(self):
         """Display all the colors that are calibrated while in calibrate mode."""
-        offset_y = 20
+        offset_y = self.ui_config.get('text_offset_y', 20)
         for index, (color_name, color_bgr) in enumerate(self.calibrated_colors.items()):
-            x1 = 90
+            x1 = self.ui_config.get('color_grid_x1', 90)
             y1 = int(offset_y + STICKER_AREA_TILE_SIZE * index)
             x2 = x1 + STICKER_AREA_TILE_SIZE
             y2 = y1 + STICKER_AREA_TILE_SIZE
@@ -487,12 +515,16 @@ class Webcam:
             key = cv2.waitKey(10) & 0xff
 
             # Quit on escape.
-            if key == 27:
+            # Check for escape key
+            escape_key = self.controls_config.get('escape_key', 27)
+            if key == escape_key:
                 break
 
             if not self.calibrate_mode:
                 # Update the snapshot when space bar is pressed.
-                if key == 32:
+                # Check for space key
+                space_key = self.controls_config.get('space_key', 32)
+                if key == space_key:
                     self.update_snapshot_state()
 
                 # Switch to another language.

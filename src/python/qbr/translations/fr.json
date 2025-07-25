@@ -1,0 +1,81 @@
+{
+  "fr": {
+    "interface": {
+      "title": "QBR - Solveur de Cube de Rubik",
+      "webcam": "Webcam",
+      "camera": "Caméra",
+      "scan": "Scanner",
+      "solve": "Résoudre",
+      "reset": "Réinitialiser",
+      "capture": "Capturer",
+      "stop": "Arrêter",
+      "language": "Langue",
+      "settings": "Paramètres",
+      "help": "Aide",
+      "about": "À propos"
+    },
+    "scanning": {
+      "instructions": "Placez le cube devant la caméra et cliquez sur scanner",
+      "scanning_face": "Scanning face %{face}",
+      "face_complete": "Face %{face} terminée",
+      "scan_complete": "Scan terminé",
+      "press_space": "Appuyez sur ESPACE pour continuer",
+      "position_cube": "Positionnez le cube correctement",
+      "detecting_colors": "Détection des couleurs...",
+      "adjusting_position": "Ajustement de la position...",
+      "scan_again": "Scanner à nouveau"
+    },
+    "solving": {
+      "solving": "Résolution...",
+      "solution_found": "Solution trouvée",
+      "no_solution": "Aucune solution trouvée",
+      "invalid_cube": "Cube invalide",
+      "moves": "Mouvements",
+      "step": "Étape %{step}",
+      "total_moves": "Total des mouvements: %{count}",
+      "estimated_time": "Temps estimé: %{time} secondes"
+    },
+    "colors": {
+      "white": "Blanc",
+      "yellow": "Jaune",
+      "red": "Rouge",
+      "orange": "Orange",
+      "blue": "Bleu",
+      "green": "Vert"
+    },
+    "faces": {
+      "front": "Avant",
+      "back": "Arrière",
+      "left": "Gauche",
+      "right": "Droite",
+      "up": "Haut",
+      "down": "Bas"
+    },
+    "moves": {
+      "R": "Droite",
+      "L": "Gauche",
+      "U": "Haut",
+      "D": "Bas",
+      "F": "Avant",
+      "B": "Arrière"
+    },
+    "errors": {
+      "camera_not_found": "Caméra non trouvée",
+      "camera_access_denied": "Accès à la caméra refusé",
+      "scanning_failed": "Échec du scan",
+      "invalid_state": "État du cube invalide",
+      "solver_error": "Erreur du solveur",
+      "network_error": "Erreur réseau",
+      "unknown_error": "Erreur inconnue"
+    },
+    "status": {
+      "ready": "Prêt",
+      "scanning": "Scanning",
+      "solving": "Résolution",
+      "complete": "Terminé",
+      "error": "Erreur",
+      "waiting": "En attente",
+      "processing": "Traitement"
+    }
+  }
+}
