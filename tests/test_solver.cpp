@@ -44,7 +44,7 @@ void test_solver_integration() {
     
     // Test that we can get a hash
     uint64_t hash1 = cube.hash();
-    cube.apply_move(Move::R);
+    cube.apply_move(R1);
     uint64_t hash2 = cube.hash();
     assert(hash1 != hash2);
     

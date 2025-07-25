@@ -27,6 +27,7 @@ include_directories(src)
 # Core library
 add_library(rubiks_core
     src/core/cube.cpp
+    src/core/cubie_array_helpers.cpp
     src/core/moves.cpp
     src/pdb/pattern_db.cpp
 )

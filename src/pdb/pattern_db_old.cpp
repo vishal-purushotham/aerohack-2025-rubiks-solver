@@ -2,7 +2,6 @@
 // ACTION: Replace the entire file with this content.
 
 #include "pattern_db.hpp"
-#include "../core/cubie_array_helpers.hpp"
 #include <fstream>
 #include <iostream>
 #include <queue>
@@ -10,7 +9,35 @@
 #include <array>
 #include "../core/cube.hpp" // For Move enum
 
+// Include lz4.h if you have the library installed
+// #include <lz4.h>
+
 namespace rubiks {
+
+// Helper struct to mirror the array representation from the Python reference
+// This is used ONLY during the one-time initialization of move tables.
+struct CubieArrayState {
+    std::array<uint8_t, 8> cp; // Corner Permutation
+    std::array<uint8_t, 8> co; // Corner Orientation
+    std::array<uint8_t, 12> ep; // Edge Permutation
+    std::array<uint8_t, 12> eo; // Edge Orientation
+};
+
+// Function to apply a move defined by permutations to an array state.
+// This logic is ported directly from Hkociemba's cubie.py `corner_multiply` and `edge_multiply`.
+void apply_move_to_array(CubieArrayState& state, const CubieArrayState& move) {
+    CubieArrayState old_state = state;
+    // Apply corner move
+    for (int i = 0; i < 8; ++i) {
+        state.cp[i] = old_state.cp[move.cp[i]];
+        state.co[i] = (old_state.co[move.cp[i]] + move.co[i]) % 3;
+    }
+    // Apply edge move
+    for (int i = 0; i < 12; ++i) {
+        state.ep[i] = old_state.ep[move.ep[i]];
+        state.eo[i] = (old_state.eo[move.ep[i]] + move.eo[i]) % 2;
+    }
+}
 
 // Helper: Convert corner orientation array to a unique integer index (0-2186)
 // This logic is ported from Hkociemba's get_twist().
@@ -153,6 +180,48 @@ void PatternDBBuilder::build_corner_orientation_pdb(const std::string& output_fi
     file.close();
 
     std::cout << "✓ PDB saved to " << output_file << std::endl;
+}
+
+} // namespace rubiks
+    return static_cast<double>(uncompressed_size_) / compressed_size_;
+}
+
+uint64_t PatternDB::compute_pattern_key(uint64_t state) const {
+    // Simple hash function for pattern extraction
+    return state ^ (state >> 32);
+}
+
+// PatternDBBuilder implementation
+void PatternDBBuilder::build_corner_pdb(const std::string& output_file) {
+    std::cout << "Building corner pattern database..." << std::endl;
+    bfs_build(output_file, true);
+}
+
+void PatternDBBuilder::build_edge_pdb(const std::string& output_file) {
+    std::cout << "Building edge pattern database..." << std::endl;
+    bfs_build(output_file, false);
+}
+
+void PatternDBBuilder::bfs_build(const std::string& output_file, bool is_corner_db) {
+    // Placeholder BFS implementation
+    std::ofstream file(output_file, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Could not create output file: " << output_file << std::endl;
+        return;
+    }
+    
+    // Generate simple pattern database
+    const size_t db_size = 1000000;
+    std::vector<uint8_t> db(db_size);
+    
+    for (size_t i = 0; i < db_size; ++i) {
+        db[i] = static_cast<uint8_t>(i % 20);
+    }
+    
+    file.write(reinterpret_cast<const char*>(db.data()), db.size());
+    file.close();
+    
+    std::cout << "Pattern database built: " << output_file << std::endl;
 }
 
 } // namespace rubiks

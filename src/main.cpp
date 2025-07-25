@@ -60,10 +60,10 @@ int run_demo_mode() {
     std::cout << "Is solved: " << (cube.is_solved() ? "Yes" : "No") << "\n";
     
     // Apply some moves
-    cube.apply_move(Move::R);
-    cube.apply_move(Move::U);
-    cube.apply_move(Move::R_PRIME);
-    cube.apply_move(Move::U_PRIME);
+    cube.apply_move(R1);
+    cube.apply_move(U1);
+    cube.apply_move(R3);
+    cube.apply_move(U3);
     
     std::cout << "After R U R' U': " << cube.to_string() << "\n";
     std::cout << "Is solved: " << (cube.is_solved() ? "Yes" : "No") << "\n\n";

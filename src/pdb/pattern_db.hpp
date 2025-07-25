@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include "../core/cube.hpp"
 
 namespace rubiks {
 
@@ -12,34 +13,28 @@ public:
     PatternDB(const std::string& filename);
     ~PatternDB();
     
-    // Load compressed database
+    // Load database from file
     bool load_from_file(const std::string& filename);
     
-    // Query heuristic value
-    uint8_t lookup(uint64_t pattern_key) const;
+    // Query heuristic value using cube state
+    uint8_t lookup(const Cube::State& state) const;
     
     // Statistics
     size_t size() const { return entries_.size(); }
-    double compression_ratio() const;
     
 private:
     std::vector<uint8_t> entries_;
-    void* compressed_data_;
-    size_t compressed_size_;
-    size_t uncompressed_size_;
-    
-    uint64_t compute_pattern_key(uint64_t state) const;
 };
 
-// Builder class for generating PDBs
+// Builder class for generating PDBs based on Hkociemba algorithm
 class PatternDBBuilder {
 public:
-    static void build_corner_pdb(const std::string& output_file);
-    static void build_edge_pdb(const std::string& output_file);
+    // Build corner orientation pattern database (3^7 = 2187 states)
+    static void build_corner_orientation_pdb(const std::string& output_file);
     
-private:
-    static void bfs_build(const std::string& output_file, 
-                         bool is_corner_db);
+    // Future PDB types can be added here:
+    // static void build_edge_orientation_pdb(const std::string& output_file);
+    // static void build_corner_permutation_pdb(const std::string& output_file);
 };
 
 } // namespace rubiks
