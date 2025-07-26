@@ -1,0 +1,970 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+The content has been processed where security check has been disabled.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Security check has been disabled - content may contain sensitive information
+- Files are sorted by Git change count (files with more changes are at the bottom)
+
+
+================================================================
+Directory Structure
+================================================================
+data/
+  cube2
+  cube3
+  cube4
+src/
+  createRubiks.js
+  index.js
+  initEventListeners.js
+  initScene.js
+  rotations.js
+  rubiks.js
+  utils.js
+styles/
+  main.css
+.gitignore
+index.html
+package.json
+README.md
+webpack.config.js
+
+================================================================
+Files
+================================================================
+
+================
+File: data/cube2
+================
+// Visible faces for 2x2 cube
+// Back
+[1, 3, 5],
+[0, 3, 5],
+[1, 2, 5],
+[0, 2, 5],
+// Center
+// Front
+[1, 3, 4],
+[0, 3, 4],
+[1, 2, 4],
+[0, 2, 4]
+
+================
+File: data/cube3
+================
+// Visible faces for 3x3 cube
+// Back
+[1, 3, 5],
+[3, 5],
+[0, 3, 5],
+[1, 5],
+[5],
+[0, 5],
+[1, 2, 5],
+[2, 5],
+[0, 2, 5],
+// Center
+[1, 3],
+[3],
+[0, 3],
+[1],
+[],
+[0],
+[1, 2],
+[2],
+[0, 2],
+// Front
+[1, 3, 4],
+[3, 4],
+[0, 3, 4],
+[1, 4],
+[4],
+[0, 4],
+[1, 2, 4],
+[2, 4],
+[0, 2, 4]
+
+================
+File: data/cube4
+================
+// Visible faces for 4x4 cube
+// Back
+[1, 3, 5],
+[3, 5],
+[3, 5],
+[0, 3, 5],
+[1, 5],
+[5],
+[5],
+[0, 5],
+[1, 5],
+[5],
+[5],
+[0, 5],
+[1, 2, 5],
+[2, 5],
+[2, 5],
+[0, 2, 5],
+// Center 1
+[1, 3],
+[3],
+[3],
+[0, 3],
+[1],
+[],
+[],
+[0],
+[1],
+[],
+[],
+[0],
+[1, 2],
+[2],
+[2],
+[0, 2],
+// Center 2
+[1, 3],
+[3],
+[3],
+[0, 3],
+[1],
+[],
+[],
+[0],
+[1],
+[],
+[],
+[0],
+[1, 2],
+[2],
+[2],
+[0, 2],
+// Front
+[1, 3, 4],
+[3, 4],
+[3, 4],
+[0, 3, 4],
+[1, 4],
+[4],
+[4],
+[0, 4],
+[1, 4],
+[4],
+[4],
+[0, 4],
+[1, 2, 4],
+[2, 4],
+[2, 4],
+[0, 2, 4]
+
+================
+File: src/createRubiks.js
+================
+import {
+  BoxBufferGeometry,
+  EdgesGeometry,
+  Group,
+  LineBasicMaterial,
+  LineSegments,
+  Mesh,
+  MeshPhongMaterial,
+} from 'three';
+
+import { getCubeSize, getVisibleCubeFaces } from './rubiks';
+
+// red, orange, white, yellow, green, blue
+const COLORS = [0xb90000, 0xff5900, 0xffffff, 0xffd500, 0x009b48, 0x0045ad];
+const INSIDE_COLOR = 0x222222;
+const SIZE = getCubeSize();
+const VISIBLE_CUBE_FACES = getVisibleCubeFaces(SIZE);
+const EDGE_LINE_WIDTHS = {
+  2: 6,
+  3: 5,
+  4: 4,
+  5: 3
+};
+const DEFAULT_EDGE_LINE_WIDTH = 2;
+
+const getMaterials = cubeIndex => {
+  const faces = VISIBLE_CUBE_FACES[cubeIndex];
+  return COLORS.map((color, index) =>
+    new MeshPhongMaterial({ color: faces.includes(index) ? color : INSIDE_COLOR, shininess: 50 })
+  );
+};
+
+export const createRubiks = () => {
+  const geometry = new BoxBufferGeometry(0.96, 0.96, 0.96);
+  const edgeMaterial = new LineBasicMaterial({
+    color: INSIDE_COLOR,
+    linewidth: EDGE_LINE_WIDTHS[SIZE] || DEFAULT_EDGE_LINE_WIDTH
+  });
+
+  const mesh = new Group();
+  const meshPosition = (SIZE / 2 - 0.5) * -1;
+  mesh.position.set(meshPosition, meshPosition, meshPosition);
+
+  let index = 0;
+  for (let z = 0; z < SIZE; z++) {
+    for (let y = 0; y < SIZE; y++) {
+      for (let x = 0; x < SIZE; x++) {
+        const isVisible = !!VISIBLE_CUBE_FACES[index].length;
+        // add only visible small cubes to the group of cubes, inner small cubes are not rendered
+        if (isVisible) {
+          const smallCube = new Mesh(geometry, getMaterials(index));
+          smallCube.position.set(x, y, z);
+          mesh.add(smallCube);
+          const edges = new EdgesGeometry(geometry);
+          const lines = new LineSegments(edges, edgeMaterial);
+          smallCube.add(lines);
+        }
+        index++;
+      }
+    }
+  }
+
+  return mesh;
+};
+
+================
+File: src/index.js
+================
+import initScene from './initScene';
+import { createRubiks } from './createRubiks';
+import { debounce } from './utils';
+import { doRotate, doScramble, rotateInfo } from './rotations';
+import { initHtmlControls, initPointerAndTouchListeners } from './initEventListeners';
+
+const [scene, camera, renderer, controls, sound] = initScene();
+const cube = createRubiks();
+
+scene.add(cube);
+scene.add(rotateInfo.rotatorObject);
+
+initHtmlControls(cube, sound);
+initPointerAndTouchListeners(cube, controls, camera, sound);
+
+// handle window resize
+window.addEventListener('resize', debounce(() => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}));
+
+// render
+const render = () => {
+  requestAnimationFrame(render);
+
+  doRotate(cube);
+  doScramble(cube);
+
+  renderer.render(scene, camera);
+};
+
+render();
+
+================
+File: src/initEventListeners.js
+================
+import { Raycaster, Vector2 } from 'three';
+import { getRotationDetails } from './rubiks';
+import { scheduleFlip, scheduleRotation, rotateInfo, scrambleInfo } from './rotations';
+
+const raycaster = new Raycaster();
+
+export const initHtmlControls = (cube, sound) => {
+  const restartButton = document.getElementById('restart-btn');
+  const scrambleButton = document.getElementById('scramble-btn');
+  const undoButton = document.getElementById('undo-btn');
+  const flipButton = document.getElementById('flip-btn');
+  const sizeSelector = document.getElementById('size-select');
+  const debugCheckbox = document.getElementById('debug-checkbox');
+
+  restartButton.addEventListener('click', () => window.location.reload());
+  scrambleButton.addEventListener('click', () => {
+    scrambleInfo.overlay.style.display = 'block';
+    scrambleInfo.isScrambling = true;
+    rotateInfo.rotateHistory.length = 0;
+    undoButton.disabled = true;
+  });
+
+  flipButton.addEventListener('click', () => {
+    scheduleFlip(cube);
+  });
+
+  undoButton.addEventListener('click', () => {
+    if (rotateInfo.isRotating) {
+      return;
+    }
+
+    scheduleRotation(cube, rotateInfo.rotateHistory.pop());
+    sound.play();
+    if (!rotateInfo.rotateHistory.length) {
+      undoButton.disabled = true;
+    }
+  });
+
+  sizeSelector.addEventListener('change', () => {
+    const url = window.location.href.split('?')[0];
+    const queryParams = new URLSearchParams(window.location.search);
+    queryParams.set('size', sizeSelector.value);
+    window.location.href = `${url}?${queryParams.toString()}`;
+  });
+
+  debugCheckbox.addEventListener('change', () => {
+    rotateInfo.overlay.style.display = debugCheckbox.checked ? 'block' : 'none';
+  });
+};
+
+const logRotationDebug = (controls, startObject, endObject) => {
+  const startPosition = startObject.position.round();
+  const endPosition = endObject.position.round();
+  const azimuthalAngle = Math.floor(controls.getAzimuthalAngle() * 180 / Math.PI);
+  const polarAngle = Math.floor(controls.getPolarAngle() * 180 / Math.PI);
+
+  const positions = document.createTextNode(
+    `Start:(${startPosition.x}, ${startPosition.y}, ${startPosition.z}), end:(${endPosition.x}, ${endPosition.y}, ${endPosition.z})`
+  );
+  const angles = document.createTextNode(`Azimuthal angle: ${azimuthalAngle}°, polar angle: ${polarAngle}°`);
+  const p = document.createElement('p');
+  p.appendChild(positions);
+  p.appendChild(document.createElement('br'));
+  p.appendChild(angles);
+  rotateInfo.overlay.appendChild(p);
+  rotateInfo.overlay.scrollTop = rotateInfo.overlay.scrollHeight;
+};
+
+export const initPointerAndTouchListeners = (cube, controls, camera, sound) => {
+  let startObject;
+
+  const getSelectedObject = mouseVector => {
+    if (mouseVector && mouseVector.x !== 0 && mouseVector.y !== 0) {
+      raycaster.setFromCamera(mouseVector, camera);
+      let intersects = raycaster.intersectObjects(cube.children);
+
+      if (intersects.length) {
+        return intersects[0].object;
+      }
+    }
+
+    return null;
+  };
+
+  const getEventVector = event => {
+    const eventVector = new Vector2();
+    const eventObj =
+      event.changedTouches && event.changedTouches.length ? event.changedTouches[0] : event;
+
+    eventVector.x = (eventObj.clientX / window.innerWidth) * 2 - 1;
+    eventVector.y = -(eventObj.clientY / window.innerHeight) * 2 + 1;
+    return eventVector;
+  };
+
+  const handleStartEvent = event => {
+    if (rotateInfo.isRotating) {
+      return;
+    }
+
+    const startVector = getEventVector(event);
+    startObject = getSelectedObject(startVector);
+    controls.enabled = !startObject;
+  };
+  controls.domElement.addEventListener('pointerdown', handleStartEvent);
+  controls.domElement.addEventListener('touchstart', handleStartEvent);
+
+  const handleEndEvent = event => {
+    const { rotateHistory } = rotateInfo;
+
+    if (rotateInfo.isRotating) {
+      return;
+    }
+
+    const endVector = getEventVector(event);
+    const endObject = getSelectedObject(endVector);
+
+    if (startObject && endObject) {
+      const rotationDetails = getRotationDetails(controls, startObject, endObject);
+      if (rotationDetails) {
+        if (rotateInfo.overlay.style.display === 'block') {
+          logRotationDebug(controls, startObject, endObject);
+        }
+
+        scheduleRotation(cube, rotationDetails);
+        document.getElementById('undo-btn').disabled = false;
+        rotateHistory.push({
+          axisToRotate: rotationDetails.axisToRotate,
+          layer: rotationDetails.layer,
+          direction: rotationDetails.direction * -1
+        });
+        if (rotateHistory.length > rotateInfo.maxHistoryLength) {
+          rotateHistory.shift();
+        }
+        sound.play();
+      }
+      startObject = null;
+    }
+
+    controls.enabled = true;
+  };
+  controls.domElement.addEventListener('pointerup', handleEndEvent);
+  controls.domElement.addEventListener('touchend', handleEndEvent);
+};
+
+================
+File: src/initScene.js
+================
+import {
+  AmbientLight,
+  Audio,
+  AudioListener,
+  AudioLoader,
+  AxesHelper,
+  Color,
+  PerspectiveCamera,
+  Scene,
+  SpotLight,
+  WebGLRenderer
+} from 'three';
+
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { getCubeSize } from './rubiks';
+
+const initScene = () => {
+  const size = getCubeSize();
+  const scene = new Scene();
+  const camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(size, size, size * 2);
+
+  const renderer = new WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setClearColor(new Color(0xAACCDD));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = false;
+
+  document.body.appendChild(renderer.domElement);
+
+  // orbiting camera with mouse
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enablePan = false;
+  controls.minDistance = size * 1.5;
+  controls.maxDistance = size * 3;
+
+  // coordinate system axes: X - red, Y - green, Z - blue
+  // const axesHelper = new AxesHelper(5);
+  // scene.add(axesHelper);
+
+  const light = new AmbientLight(0x555555);
+  scene.add(light);
+  const spotPositions = [
+    [1, 1, 10],
+    [1, 1, -10],
+    [10, 1, 1],
+    [-10, 1, 1],
+    [1, 10, 1],
+    [1, -10, 1],
+  ];
+  spotPositions.forEach(position => {
+    const spotLight = new SpotLight(0xAAAAAA);
+    spotLight.position.set(size * position[0], size * position[1], size * position[2]);
+    scene.add(spotLight);
+  });
+
+  const listener = new AudioListener();
+  const sound = new Audio(listener);
+  const audioLoader = new AudioLoader();
+  const wavUrl = `${window.location.origin}${window.location.pathname}sounds/rotate.wav`;
+  audioLoader.load(wavUrl, function(buffer) {
+    sound.setBuffer(buffer);
+    sound.setVolume(0.5);
+  });
+
+  return [scene, camera, renderer, controls, sound];
+};
+
+export default initScene;
+
+================
+File: src/rotations.js
+================
+import {
+  Clock,
+  Object3D,
+  Quaternion,
+  Vector3
+} from 'three';
+
+import { getCubeSize, getScrambleRotation } from './rubiks';
+
+const SIZE = getCubeSize();
+// small cubes on the surface = all small cubes - cubes inside
+const CUBE_CHILDREN_LENGTH = Math.pow(SIZE, 3) - Math.pow(SIZE - 2, 3);
+const clock = new Clock();
+
+const UNIT_VECTORS = {
+  x: new Vector3(1, 0, 0),
+  y: new Vector3(0, 1, 0),
+  z: new Vector3(0, 0, 1),
+};
+
+export const scrambleInfo = {
+  isScrambling: false,
+  scramblingSpeed: 20,
+  scrambleCount: 100,
+  scrambleStep: 0,
+  overlay: document.getElementById('scramble-overlay'),
+  counterText: document.getElementById('scramble-counter')
+};
+
+export const rotateInfo = {
+  isRotating: false,
+  rotatingSpeed: 2,
+  rotatorObject: new Object3D(),
+  targetQuaternion: new Quaternion(),
+  rotateHistory: [],
+  maxHistoryLength: 20,
+  overlay: document.getElementById('debug-overlay')
+};
+
+export const scheduleRotation = (cube, rotation) => {
+  const { axisToRotate, layer, direction } = rotation;
+  const { rotatorObject, targetQuaternion } = rotateInfo;
+  const faceCubes = cube.children.filter(child => child.position.round()[axisToRotate] === layer);
+
+  // rotate with a rotator object and quaternion
+  rotateInfo.isRotating = true;
+  rotatorObject.quaternion.identity();
+  faceCubes.forEach(f => rotatorObject.attach(f));
+  targetQuaternion.setFromAxisAngle(UNIT_VECTORS[axisToRotate], direction * (Math.PI / 2));
+};
+
+export const scheduleFlip = cube => {
+  const { rotatorObject, targetQuaternion } = rotateInfo;
+  const faceCubes = [...cube.children];
+
+  // rotate with a rotator object and quaternion
+  rotateInfo.isRotating = true;
+  rotatorObject.quaternion.identity();
+  faceCubes.forEach(f => rotatorObject.attach(f));
+  targetQuaternion.setFromAxisAngle(UNIT_VECTORS['x'], Math.PI);
+};
+
+export const doRotate = cube => {
+  const { rotatorObject, targetQuaternion, rotatingSpeed } = rotateInfo;
+  const delta = clock.getDelta();
+
+  if (!rotatorObject.quaternion.equals(targetQuaternion)) {
+    const step = (scrambleInfo.isScrambling ? scrambleInfo.scramblingSpeed : rotatingSpeed) * delta;
+    rotatorObject.quaternion.rotateTowards(targetQuaternion, step);
+  } else {
+    if (rotatorObject.children.length) {
+      rotatorObject.children.forEach(child => cube.attach(child));
+    }
+  }
+  // rotation is finished when all small cubes are attached to the group of cubes
+  if (cube.children.length === CUBE_CHILDREN_LENGTH) {
+    rotateInfo.isRotating = false;
+  }
+};
+
+export const doScramble = cube => {
+  const { overlay, scrambleCount, counterText } = scrambleInfo;
+  if (scrambleInfo.isScrambling && !rotateInfo.isRotating) {
+    if (scrambleInfo.scrambleStep++ < scrambleCount) {
+      scheduleRotation(cube, getScrambleRotation(SIZE));
+    } else {
+      overlay.style.display = 'none';
+      scrambleInfo.isScrambling = false;
+      scrambleInfo.scrambleStep = 0;
+    }
+    counterText.innerText = `${scrambleInfo.scrambleStep} of ${scrambleCount} steps`;
+  }
+};
+
+================
+File: src/rubiks.js
+================
+const DEFAULT_CUBE_SIZE = 3;
+
+const AXLES = ['x', 'y', 'z'];
+
+const AXIS_TO_ROTATE_MAP = {
+  x: ['y', 'z'],
+  y: ['x', 'z'],
+  z: ['x', 'y']
+}
+
+const DIRECTIONS_MAP = {
+  x: [-1, 1],
+  y: [1, -1],
+  z: [-1, 1]
+};
+
+const getDeltaList = (vectorA, vectorB) => {
+  let delta = [];
+
+  if (vectorA.x !== vectorB.x) delta.push('x');
+  if (vectorA.y !== vectorB.y) delta.push('y');
+  if (vectorA.z !== vectorB.z) delta.push('z');
+
+  return delta;
+};
+
+// TODO: review and implement a better solution for rotations
+const getAxisToRotate = (deltaAxis, orbitHorizontal) => {
+  const axles = AXIS_TO_ROTATE_MAP[deltaAxis];
+  return Math.abs(orbitHorizontal) < 45 || Math.abs(orbitHorizontal) > 135 ? axles[0] : axles[1];
+};
+
+const getDirection = (startPosition, endPosition, delta, orbitHorizontal) => {
+  const directions = DIRECTIONS_MAP[delta];
+  const direction = -135 < orbitHorizontal && orbitHorizontal < 45 ? directions[0] : directions[1];
+
+  return direction * (startPosition[delta] - endPosition[delta] > 0 ? 1 : -1);
+};
+
+export const getRotationDetails = (orbitControls, startObject, endObject) => {
+  const startPosition = startObject.position.round();
+  const endPosition = endObject.position.round();
+
+  if (!startPosition.equals(endPosition)) {
+    const deltaList = getDeltaList(startPosition, endPosition);
+
+    // if start and end objects are on same face
+    if (deltaList.length === 1) {
+      const orbitHorizontal = orbitControls.getAzimuthalAngle() * 180 / Math.PI;
+      const deltaAxis = deltaList[0];
+      const axisToRotate = getAxisToRotate(deltaAxis, orbitHorizontal);
+      return {
+        axisToRotate,
+        layer: startPosition[axisToRotate],
+        direction: getDirection(startPosition, endPosition, deltaAxis, orbitHorizontal)
+      };
+    }
+  }
+  return null;
+};
+
+export const getScrambleRotation = size => {
+  const axisToRotate = AXLES[Math.floor(Math.random() * Math.floor(3))];
+  const layer = Math.floor(Math.random() * Math.floor(size));
+  const direction = Math.floor(Math.random() * Math.floor(2)) ? 1 : -1;
+
+  return {
+    axisToRotate,
+    layer,
+    direction
+  };
+};
+
+// TODO: investigate if this could be done in a simpler way
+export const getVisibleCubeFaces = size => {
+  const faces = [];
+
+  // Back
+  faces.push([1, 3, 5]); // corner 1
+  for (let i = 0; i < size - 2; i++) {
+    faces.push([3, 5]);
+  }
+  faces.push([0, 3, 5]); // corner 2
+  if (size > 2) {
+    for (let i = 0; i < size - 2; i++) {
+      faces.push([1, 5]);
+      for (let j = 0; j < size - 2; j++) {
+        faces.push([5]);
+      }
+      faces.push([0, 5]);
+    }
+  }
+  faces.push([1, 2, 5]); // corner 3
+  for (let i = 0; i < size - 2; i++) {
+    faces.push([2, 5]);
+  }
+  faces.push([0, 2, 5]); // corner 4
+  // Center
+  if (size > 2) {
+    for (let k = 0; k < size - 2; k++) {
+      faces.push([1, 3]);
+      for (let i = 0; i < size - 2; i++) {
+        faces.push([3]);
+      }
+      faces.push([0, 3]);
+      for (let i = 0; i < size - 2; i++) {
+        faces.push([1]);
+        for (let j = 0; j < size - 2; j++) {
+          faces.push([]);
+        }
+        faces.push([0]);
+      }
+      faces.push([1, 2]);
+      for (let i = 0; i < size - 2; i++) {
+        faces.push([2]);
+      }
+      faces.push([0, 2]);
+    }
+  }
+  // Front
+  faces.push([1, 3, 4]); // corner 5
+  for (let i = 0; i < size - 2; i++) {
+    faces.push([3, 4]);
+  }
+  faces.push([0, 3, 4]); // corner 6
+  if (size > 2) {
+    for (let i = 0; i < size - 2; i++) {
+      faces.push([1, 4]);
+      for (let j = 0; j < size - 2; j++) {
+        faces.push([4]);
+      }
+      faces.push([0, 4]);
+    }
+  }
+  faces.push([1, 2, 4]); // corner 7
+  for (let i = 0; i < size - 2; i++) {
+    faces.push([2, 4]);
+  }
+  faces.push([0, 2, 4]); // corner 8
+
+  return faces;
+}
+
+export const getCubeSize = () => {
+  const queryParams = new URLSearchParams(window.location.search);
+  const sizeSelector = document.getElementById('size-select');
+
+  const size = queryParams.get('size');
+  if (size) {
+    sizeSelector.value = size;
+  } else {
+    queryParams.set('size', DEFAULT_CUBE_SIZE);
+    sizeSelector.value = DEFAULT_CUBE_SIZE;
+    history.replaceState(null, null, `?${queryParams.toString()}`);
+  }
+
+  return size || DEFAULT_CUBE_SIZE;
+};
+
+================
+File: src/utils.js
+================
+export const debounce = (callback, wait = 250) => {
+  let timeout;
+  return (...args) => {
+      const context = this;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => callback.apply(context, args), wait);
+  };
+};
+
+================
+File: styles/main.css
+================
+html, body {
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.controls {
+  padding: 20px;
+  position: absolute;
+  right: 0;
+
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+#scramble-overlay {
+  background-color: #CCCCCC;
+  bottom: 0;
+  display: none;
+  left: 0;
+  opacity: .6;
+  position: absolute;
+  right: 0;
+  text-align: center;
+  top: 0;
+}
+
+#scramble-overlay p {
+  padding-top: 32px;
+}
+
+#debug-overlay {
+  background-color: lightgray;
+  border: 1px solid gray;
+  bottom: 10px;
+  display: none;
+  opacity: 0.7;
+  overflow-y: auto;
+  position: absolute;
+  right: 10px;
+  top: 50px;
+  width: 300px;
+}
+
+#debug-overlay:before {
+  background-color: lightgray;
+  border-bottom: 1px solid gray;
+  content: 'Rotation debug';
+  display: block;
+  font-weight: 500;
+  padding: 5px 0;
+  text-align: center;
+}
+
+#debug-overlay p {
+  margin: 10px 5px;
+}
+
+================
+File: .gitignore
+================
+node_modules/
+
+================
+File: index.html
+================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="A visualization of the Rubik's cube.">
+  <title>Rubik's cube</title>
+  <link rel="shortcut icon" href="rubiks.ico">
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div class="controls">
+    <select id="size-select">
+      <option value="2">2x2</option>
+      <option value="3">3x3</option>
+      <option value="4">4x4</option>
+      <option value="5">5x5</option>
+      <option value="6">6x6</option>
+      <option value="7">7x7</option>
+      <option value="8">8x8</option>
+      <option value="9">9x9</option>
+    </select>
+    <button id="restart-btn">Restart</button>
+    <button id="scramble-btn">Scramble</button>
+    <button id="undo-btn" disabled>Undo</button>
+    <button id="flip-btn">Flip</button>
+    <label for="debug-checkbox">
+      <input type="checkbox" id="debug-checkbox">
+    </label>
+  </div>
+  <div id="scramble-overlay">
+    <p>SCRAMBLING...</p>
+    <p id="scramble-counter"></p>
+  </div>
+  <div id="debug-overlay"></div>
+  <script src="dist/rubik.js"></script>
+</body>
+</html>
+
+================
+File: package.json
+================
+{
+  "name": "rubiks-threejs",
+  "version": "1.0.0",
+  "description": "Rubik's cube with Three.js",
+  "private": true,
+  "scripts": {
+    "watch": "watch 'npm run build' src",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack"
+  },
+  "author": "Zoltan Gorbe",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.123.0"
+  },
+  "devDependencies": {
+    "watch": "^1.0.2",
+    "webpack": "^5.9.0",
+    "webpack-cli": "^4.2.0"
+  }
+}
+
+================
+File: README.md
+================
+# rubiks-threejs
+
+A visualization of the Rubik's cube using Three.js.
+[See it in action](https://zgorbe.github.io/rubiks-threejs/)
+
+Features:
+
+* Support multiple sizes
+* Scramble
+* Non-visible parts of the cube are not colored
+
+Several things to implement / improve:
+
+* The way how a cube face is selected for rotation
+* Define the non-visible parts in better way
+* Detect if the cube is solved
+
+================
+File: webpack.config.js
+================
+const path = require('path');
+
+module.exports = {
+  entry: './src/index.js',
+  output: {
+    filename: 'rubik.js',
+    path: path.resolve(__dirname, 'dist'),
+  },
+  performance: {
+    hints: false
+  }
+};
+
+
+
+
+================================================================
+End of Codebase
+================================================================
