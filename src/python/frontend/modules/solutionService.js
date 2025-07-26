@@ -8,30 +8,36 @@ export async function handleSolve() {
     const solutionDisplay = document.getElementById("solution-display");
     solutionDisplay.textContent = "";
 
-    let data  = await getSolution();
-    let solutionMoves = data.solutionString.split(" "); // using notation from the kociemba solver, which includes double moves like "F2"
-    let parsedMoves = data.parsedMoves;
-    console.log(data);
+    let data = await getSolution();
+    let solutionString = null;
+    let parsedMoves = null;
+
+    // Try to use the expected structure from /solve
+    if (data && data.solutionString && data.parsedMoves) {
+        solutionString = data.solutionString;
+        parsedMoves = data.parsedMoves;
+    } else if (data && data.solution) {
+        // Fallback: if only a solution string is returned
+        solutionString = data.solution;
+        parsedMoves = solutionString.trim().split(/\s+/);
+    } else {
+        // Fallback: fetch from /get_cube_data
+        const cubeData = await fetch('/get_cube_data').then(r => r.json());
+        solutionString = cubeData.solution;
+        parsedMoves = solutionString.trim().split(/\s+/);
+    }
 
     let i = 0;
     async function nextMove() {
-        if (parsedMoves.length === 0) return;
-        if (i < parsedMoves.length) { // important to check against parsedMoves which can be empty.
+        if (!parsedMoves || parsedMoves.length === 0) return;
+        if (i < parsedMoves.length) {
             const move = parsedMoves[i];
-            if (typeof move === "string") { // single rotation
-                solutionDisplay.textContent += " " + solutionMoves[i];
-                await makeAutoMove(move, true);
-            } else if (Array.isArray(move) && move.length === 2) { // double rotations
-                solutionDisplay.textContent += " " + solutionMoves[i];
-                await makeAutoMove(move[0], true);
-                await makeAutoMove(move[1], true);
-            } else {
-                console.error("Unexpected move: ", move);
-            }
+            solutionDisplay.textContent += " " + move;
+            await makeAutoMove(move, true);
             i++;
             nextMove();
         } else {
-            resetMode(); // reset to default (manual) mode when done
+            resetMode();
         }
     }
     nextMove();

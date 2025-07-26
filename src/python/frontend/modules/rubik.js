@@ -38,32 +38,46 @@ const colorMap = {
 function generateMaterial(x, y, z, cubeState) {
     if (x === 0 && y === 0 && z === 0) return blackMaterial; // Center piece is black
 
-    const materials = Array(6).fill(blackMaterial);
-    const stateOrder = 'URFDLB';
-
-    // Map coordinates to 0, 1, 2 indices
-    const i = Math.round((x + 1.1) / 1.1);
-    const j = Math.round((y + 1.1) / 1.1);
-    const k = Math.round((z + 1.1) / 1.1);
+    // Order of materials for THREE.BoxGeometry: [R, L, U, D, F, B] (x+, x-, y+, y-, z+, z-)
+    const materials = [blackMaterial, blackMaterial, blackMaterial, blackMaterial, blackMaterial, blackMaterial];
 
     if (cubeState) {
-        const faceMap = {
-            'U': (2 - k) * 3 + i,       // Up face (y = 1.1)
-            'R': (2 - j) * 3 + (2-k),   // Right face (x = 1.1)
-            'F': (2 - j) * 3 + i,       // Front face (z = 1.1)
-            'D': k * 3 + i,             // Down face (y = -1.1)
-            'L': (2 - j) * 3 + k,       // Left face (x = -1.1)
-            'B': (2 - j) * 3 + (2-i),   // Back face (z = -1.1)
-        };
-
-        // Order of materials for THREE.BoxGeometry: R, L, U, D, F, B (x+, x-, y+, y-, z+, z-)
-        if (Math.abs(x - 1.1) < 0.1)  materials[0] = colorMap[cubeState[stateOrder.indexOf('R') * 9 + faceMap['R']]];
-        if (Math.abs(x + 1.1) < 0.1)  materials[1] = colorMap[cubeState[stateOrder.indexOf('L') * 9 + faceMap['L']]];
-        if (Math.abs(y - 1.1) < 0.1)  materials[2] = colorMap[cubeState[stateOrder.indexOf('U') * 9 + faceMap['U']]];
-        if (Math.abs(y + 1.1) < 0.1)  materials[3] = colorMap[cubeState[stateOrder.indexOf('D') * 9 + faceMap['D']]];
-        if (Math.abs(z - 1.1) < 0.1)  materials[4] = colorMap[cubeState[stateOrder.indexOf('F') * 9 + faceMap['F']]];
-        if (Math.abs(z + 1.1) < 0.1)  materials[5] = colorMap[cubeState[stateOrder.indexOf('B') * 9 + faceMap['B']]];
-
+        // Standard facelet order: U (0-8), R (9-17), F (18-26), D (27-35), L (36-44), B (45-53)
+        // 3D coordinates: x, y, z in {-1.1, 0, 1.1}
+        // i, j, k in {0,1,2} for x, y, z
+        const i = Math.round((x + 1.1) / 1.1); // 0,1,2
+        const j = Math.round((y + 1.1) / 1.1); // 0,1,2
+        const k = Math.round((z + 1.1) / 1.1); // 0,1,2
+        // U face (y==1.1): index = 0 + 3*(2-k) + i
+        if (Math.abs(y - 1.1) < 0.1) {
+            const idx = 0 + 3 * (2 - k) + i; // U face: row 0 is z=1.1 (k=2), col 0 is x=-1.1 (i=0)
+            materials[2] = colorMap[cubeState[idx]];
+        }
+        // D face (y==-1.1): index = 27 + 3*(k) + (2-i)
+        if (Math.abs(y + 1.1) < 0.1) {
+            const idx = 27 + 3 * k + (2 - i); // D face: row 0 is z=-1.1 (k=0), col 0 is x=1.1 (i=2)
+            materials[3] = colorMap[cubeState[idx]];
+        }
+        // F face (z==1.1): index = 18 + 3 * (2 - j) + i
+        if (Math.abs(z - 1.1) < 0.1) {
+            const idx = 18 + 3 * (2 - j) + i; // F face: row 0 is y=1.1 (j=2), col 0 is x=-1.1 (i=0)
+            materials[4] = colorMap[cubeState[idx]];
+        }
+        // B face (z==-1.1): index = 45 + 3 * (j) + (2 - i)
+        if (Math.abs(z + 1.1) < 0.1) {
+            const idx = 45 + 3 * j + (2 - i); // B face: row 0 is y=-1.1 (j=0), col 0 is x=1.1 (i=2)
+            materials[5] = colorMap[cubeState[idx]];
+        }
+        // R face (x==1.1): index = 9 + 3 * (2 - j) + (2 - k)
+        if (Math.abs(x - 1.1) < 0.1) {
+            const idx = 9 + 3 * (2 - j) + (2 - k); // R face: row 0 is y=1.1 (j=2), col 0 is z=1.1 (k=2)
+            materials[0] = colorMap[cubeState[idx]];
+        }
+        // L face (x==-1.1): index = 36 + 3 * (2 - j) + k
+        if (Math.abs(x + 1.1) < 0.1) {
+            const idx = 36 + 3 * (2 - j) + k; // L face: row 0 is y=1.1 (j=2), col 0 is z=-1.1 (k=0)
+            materials[1] = colorMap[cubeState[idx]];
+        }
     } else {
         // Default solved state materials
         if (Math.abs(x - 1.1) < 0.1) materials[0] = blueMaterial;
