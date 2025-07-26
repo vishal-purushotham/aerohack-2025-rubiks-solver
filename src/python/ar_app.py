@@ -16,11 +16,11 @@ sys.path.append(os.path.dirname(__file__))
 from kociemba_wrapper import kociemba_solver
 from qbr.video import Webcam
 from qbr.constants import (
-    STICKER_AREA, CUBE_PALETTE, CUBE_FACE_MAP,
+    STICKER_AREA_TILE_SIZE, CUBE_PALETTE,
     E_INCORRECTLY_SCANNED, E_ALREADY_SOLVED
 )
 from config_manager import config, get_solver_config, get_performance_config, get_colors_config
-from simulation_ui import Cube3DVisualizer # Add this import
+import simulation_server # Add this import
 
 class AeroHackARSolver:
     """Professional AR + Solver integration for AeroHack 2025."""
@@ -232,7 +232,12 @@ def main():
         if sys.argv[1] == "--demo":
             app.run_demo()
         elif sys.argv[1] == "--manual" and len(sys.argv) > 2:
-            app.run_manual_solve(sys.argv[2])
+            cube_state = sys.argv[2]
+            solution = app.run_manual_solve(cube_state)
+            if solution:
+                # Launch 3D simulation for manual solve
+                print("\n🚀 Launching 3D solution animation in your web browser...")
+                simulation_server.run_simulation(cube_state, solution)
         else:
             print("Usage:")
             print("  python ar_app.py           # Professional AR scanning mode")
@@ -252,15 +257,15 @@ def main():
                 print("✅ Professional solution generated successfully!")
                 print("You can now apply these moves to solve your cube.")
                 
-                # --- NEW 3D VISUALIZATION ---
-                print("\n🚀 Launching 3D solution animation...")
+                # --- NEW 3D VISUALIZATION LAUNCH ---
+                print("\n🚀 Launching 3D solution animation in your web browser...")
                 try:
-                    visualizer = Cube3DVisualizer()
-                    visualizer.animate_solution(solution)
-                    print("✅ 3D animation complete.")
+                    # Run the simulation server. This will block until the browser tab is closed.
+                    simulation_server.run_simulation(cube_state, solution)
+                    print("✅ 3D simulation finished.")
                 except Exception as e:
                     print(f"❌ Failed to launch 3D visualization: {e}")
-                # --------------------------
+                # ------------------------------------
                     
             else:
                 print("❌ Professional solving failed")

@@ -1,0 +1,33 @@
+<!-- FILE: src/python/frontend/index.html -->
+<!-- ACTION: Create this new file. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AeroHack 2025 - 3D Cube Simulation</title>
+    <style>
+        body { margin: 0; background-color: #1a1a1a; color: white; font-family: sans-serif; overflow: hidden; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; width: 100%; text-align: center; z-index: 100; }
+        #controls { position: absolute; bottom: 20px; width: 100%; text-align: center; }
+        button { padding: 12px 24px; font-size: 18px; cursor: pointer; background-color: #333; color: white; border: 1px solid #555; border-radius: 8px; margin: 5px; }
+        button:disabled { cursor: not-allowed; opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>AeroHack 2025 - 3D Cube Solver</h1>
+        <p id="status">Loading simulation...</p>
+    </div>
+    <div id="controls">
+        <button id="solveButton" disabled>Animate Solution</button>
+        <button id="resetButton" disabled>Reset</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- CORRECTED LINE: Changed src="/main.js" to src="main.js" -->
+    <script src="main.js"></script>
+</body>
+</html>

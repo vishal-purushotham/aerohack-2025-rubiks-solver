@@ -22,3 +22,4 @@ configparser>=5.0.0
 
 # 3D Visualization
 vpython>=7.6.0
+Flask>=2.0.0
