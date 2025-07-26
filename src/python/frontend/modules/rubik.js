@@ -1,193 +1,287 @@
-// Import the scene here to facilitate cube creation and modification
-// Directly modifying the scene during cube creation improves performance
-import { scene } from "./sceneManager.js";
+export default class RubiksCube {
+    constructor(order = 3, size = 1, debug = false) {
+        this.cubeOrder = order;
+        this.size = size;
+        this.debug = debug;
+        this.group = new THREE.Group();
+        this.cubies = [];
 
-///////////////////////////////////////////////////////////////////////////////////////////
-//  MATERIALS
-///////////////////////////////////////////////////////////////////////////////////////////
+        // Animation state
+        this.isRotating = false;
+        this.completeCallback = null;
 
-let blackMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-let blueMaterial = new THREE.MeshBasicMaterial( { color: 0x003DA5 } );
-let greenMaterial = new THREE.MeshBasicMaterial( { color: 0x009A44 } );
-let whiteMaterial = new THREE.MeshBasicMaterial( { color: 0xFFFFFF } );
-let yellowMaterial = new THREE.MeshBasicMaterial( { color: 0xFFD700 } );
-let redMaterial = new THREE.MeshBasicMaterial( { color: 0xBA0C2F } );
-let orangeMaterial = new THREE.MeshBasicMaterial( { color: 0xFE5000 } );
+        // Colors mapping
+        this.colors = {
+            U: 0xffffff, // White
+            D: 0xffff00, // Yellow
+            L: 0x009a44, // Green
+            R: 0x003da5, // Blue
+            F: 0xba0c2f, // Red
+            B: 0xfe5000, // Orange
+        };
+        
+        this.rotatorObject = new THREE.Object3D();
+        this.activeCubies = [];
+        this.rotateAxisLocal = null;
+        this.targetAngle = 0;
+        this.rotatedAngle = 0;
+        this.lastTick = 0;
 
-///////////////////////////////////////////////////////////////////////////////////////////
-//  OBJECTS
-///////////////////////////////////////////////////////////////////////////////////////////
-
-function createCubelet(x, y, z, cubeState) {
-  let cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-  let cubeMaterial = generateMaterial(x, y, z, cubeState);
-  let cubelet = new THREE.Mesh(cubeGeometry, cubeMaterial);
-  cubelet.position.set(x, y, z);
-  return cubelet;
-}
-
-const colorMap = {
-    'U': whiteMaterial,
-    'R': blueMaterial,
-    'F': redMaterial,
-    'D': yellowMaterial,
-    'L': greenMaterial,
-    'B': orangeMaterial,
-};
-
-function generateMaterial(x, y, z, cubeState) {
-    if (x === 0 && y === 0 && z === 0) return blackMaterial; // Center piece is black
-
-    // Order of materials for THREE.BoxGeometry: [R, L, U, D, F, B] (x+, x-, y+, y-, z+, z-)
-    const materials = [blackMaterial, blackMaterial, blackMaterial, blackMaterial, blackMaterial, blackMaterial];
-
-    if (cubeState) {
-        // Standard facelet order: U (0-8), R (9-17), F (18-26), D (27-35), L (36-44), B (45-53)
-        // 3D coordinates: x, y, z in {-1.1, 0, 1.1}
-        // i, j, k in {0,1,2} for x, y, z
-        const i = Math.round((x + 1.1) / 1.1); // 0,1,2
-        const j = Math.round((y + 1.1) / 1.1); // 0,1,2
-        const k = Math.round((z + 1.1) / 1.1); // 0,1,2
-        // U face (y==1.1): index = 0 + 3*(2-k) + i
-        if (Math.abs(y - 1.1) < 0.1) {
-            const idx = 0 + 3 * (2 - k) + i; // U face: row 0 is z=1.1 (k=2), col 0 is x=-1.1 (i=0)
-            materials[2] = colorMap[cubeState[idx]];
-        }
-        // D face (y==-1.1): index = 27 + 3*(k) + (2-i)
-        if (Math.abs(y + 1.1) < 0.1) {
-            const idx = 27 + 3 * k + (2 - i); // D face: row 0 is z=-1.1 (k=0), col 0 is x=1.1 (i=2)
-            materials[3] = colorMap[cubeState[idx]];
-        }
-        // F face (z==1.1): index = 18 + 3 * (2 - j) + i
-        if (Math.abs(z - 1.1) < 0.1) {
-            const idx = 18 + 3 * (2 - j) + i; // F face: row 0 is y=1.1 (j=2), col 0 is x=-1.1 (i=0)
-            materials[4] = colorMap[cubeState[idx]];
-        }
-        // B face (z==-1.1): index = 45 + 3 * (j) + (2 - i)
-        if (Math.abs(z + 1.1) < 0.1) {
-            const idx = 45 + 3 * j + (2 - i); // B face: row 0 is y=-1.1 (j=0), col 0 is x=1.1 (i=2)
-            materials[5] = colorMap[cubeState[idx]];
-        }
-        // R face (x==1.1): index = 9 + 3 * (2 - j) + (2 - k)
-        if (Math.abs(x - 1.1) < 0.1) {
-            const idx = 9 + 3 * (2 - j) + (2 - k); // R face: row 0 is y=1.1 (j=2), col 0 is z=1.1 (k=2)
-            materials[0] = colorMap[cubeState[idx]];
-        }
-        // L face (x==-1.1): index = 36 + 3 * (2 - j) + k
-        if (Math.abs(x + 1.1) < 0.1) {
-            const idx = 36 + 3 * (2 - j) + k; // L face: row 0 is y=1.1 (j=2), col 0 is z=-1.1 (k=0)
-            materials[1] = colorMap[cubeState[idx]];
-        }
-    } else {
-        // Default solved state materials
-        if (Math.abs(x - 1.1) < 0.1) materials[0] = blueMaterial;
-        if (Math.abs(x + 1.1) < 0.1) materials[1] = greenMaterial;
-        if (Math.abs(y - 1.1) < 0.1) materials[2] = whiteMaterial;
-        if (Math.abs(y + 1.1) < 0.1) materials[3] = yellowMaterial;
-        if (Math.abs(z - 1.1) < 0.1) materials[4] = redMaterial;
-        if (Math.abs(z + 1.1) < 0.1) materials[5] = orangeMaterial;
+        this.createCube();
+        this.group.add(this.rotatorObject);
     }
-    return materials;
-}
 
-export let cubesArray3D = [];
-export function createCube(cubeState = null) {
-  cubesArray3D = [];
-  for (let x = -1.1; x <= 1.1; x += 1.1) {
-    let why = [];
-    for (let y = -1.1; y <= 1.1; y += 1.1) {
-      let zed = [];
-      for (let z = -1.1; z <= 1.1; z += 1.1) {
-        const c = createCubelet(x, y, z, cubeState);
-        zed.push(c);
-        scene.add(c);
-      }
-      why.push(zed);
+    // Get the main group for adding to a scene
+    get object() {
+        return this.group;
     }
-    cubesArray3D.push(why);
-  }
-}
 
-export function resetCubeObject(cubeState = null) {
-  cubesArray3D.forEach(layer => {
-    layer.forEach(row => {
-      row.forEach(cube => {
-        scene.remove(cube);
-      });
-    });
-  });
-  createCube(cubeState);
-}
+    // Create the Rubik's Cube from cubies
+    createCube() {
+        this.group.rotation.x = -Math.PI / 6;
+        this.group.rotation.y = -Math.PI / 4;
 
-///////////////////////////////////////////////////////////////////////////////////////
-// FACE ROTATION HELPER FUNCTIONS (shared rotation behaviour for each axis)
-///////////////////////////////////////////////////////////////////////////////////////
+        const offset = (this.cubeOrder - 1) / 2;
 
-// special rounding helper function, rounds value to -1.1, 0, 1.1
-function round(v) {
-  var distToZero = Math.abs(v);
-  var distToPos = Math.abs(1.1-v);
-  var distToNeg = Math.abs(-1.1-v);
-  if (distToZero < distToNeg && distToZero < distToPos) {
-    return 0;
-  }
-  if (distToNeg < distToZero && distToNeg < distToPos) {
-    return -1.1;
-  } 
-  return 1.1; // closer to 1.1 case
-}
+        for (let x = 0; x < this.cubeOrder; x++) {
+            for (let y = 0; y < this.cubeOrder; y++) {
+                for (let z = 0; z < this.cubeOrder; z++) {
+                    // Skip the core cubie
+                    if (x > 0 && x < this.cubeOrder - 1 && y > 0 && y < this.cubeOrder - 1 && z > 0 && z < this.cubeOrder - 1) {
+                        continue;
+                    }
 
-// rotate x faces (R,L,M)
-export function rotateXFace(xpos, rad) {
-  let M = new THREE.Matrix4();
-  M.makeRotationX(rad);
-  let cubePos = new THREE.Vector3();
-  // perform rotation
-  for (let x = 0; x < 3; x++) {
-      for (let y = 0; y < 3; y++) {
-          for (let z = 0; z < 3; z++) {
-              if (round(cubesArray3D[x][y][z].getWorldPosition(cubePos).x) == xpos) {
-                  cubesArray3D[x][y][z].matrixAutoUpdate = false;
-                  cubesArray3D[x][y][z].matrix.premultiply(M);
-                  cubesArray3D[x][y][z].updateMatrixWorld();
-              }
-          }
-      }
-  }
-}
-// rotate y faces (U, D)
-export function rotateYFace(ypos, rad) {
-  let M = new THREE.Matrix4();
-  M.makeRotationY(rad);
-  let cubePos = new THREE.Vector3();
-  // perform rotation
-  for (let x = 0; x < 3; x++) {
-      for (let y = 0; y < 3; y++) {
-          for (let z = 0; z < 3; z++) {
-              if (round(cubesArray3D[x][y][z].getWorldPosition(cubePos).y) == ypos) {
-                  cubesArray3D[x][y][z].matrixAutoUpdate = false;
-                  cubesArray3D[x][y][z].matrix.premultiply(M);
-                  cubesArray3D[x][y][z].updateMatrixWorld();
-              }
-          }
-      }
-  }
-}
-// rotate z faces (F, B)
-export function rotateZFace(zpos, rad) {
-  let M = new THREE.Matrix4();
-  M.makeRotationZ(rad);
-  let cubePos = new THREE.Vector3();
-  // perform rotation
-  for (let x = 0; x < 3; x++) {
-      for (let y = 0; y < 3; y++) {
-          for (let z = 0; z < 3; z++) {
-              if (round(cubesArray3D[x][y][z].getWorldPosition(cubePos).z) == zpos) {
-                  cubesArray3D[x][y][z].matrixAutoUpdate = false;
-                  cubesArray3D[x][y][z].matrix.premultiply(M);
-                  cubesArray3D[x][y][z].updateMatrixWorld();
-              }
-          }
-      }
-  }
+                    const cubie = this.createCubie(x - offset, y - offset, z - offset);
+                    this.cubies.push(cubie);
+                    this.group.add(cubie);
+                }
+            }
+        }
+    }
+
+    // Create a single cubie with its facelets
+    createCubie(x, y, z) {
+        const cubie = new THREE.Group();
+        cubie.position.set(x, y, z);
+
+        const faceletSize = 0.9;
+        const faceletGeo = new THREE.PlaneGeometry(faceletSize, faceletSize);
+
+        const faces = [
+            { dir: new THREE.Vector3(0, 1, 0), color: this.colors.U, name: 'U' }, // Up
+            { dir: new THREE.Vector3(0, -1, 0), color: this.colors.D, name: 'D' }, // Down
+            { dir: new THREE.Vector3(-1, 0, 0), color: this.colors.L, name: 'L' }, // Left
+            { dir: new THREE.Vector3(1, 0, 0), color: this.colors.R, name: 'R' }, // Right
+            { dir: new THREE.Vector3(0, 0, 1), color: this.colors.F, name: 'F' }, // Front
+            { dir: new THREE.Vector3(0, 0, -1), color: this.colors.B, name: 'B' }, // Back
+        ];
+
+        const offset = (this.cubeOrder - 1) / 2;
+
+        faces.forEach(face => {
+            // Check if this cubie is on the surface of the specified face
+            if (Math.abs(cubie.position.dot(face.dir) - offset) < 0.1) {
+                const faceletMat = new THREE.MeshBasicMaterial({ color: face.color, side: THREE.DoubleSide });
+                const facelet = new THREE.Mesh(faceletGeo, faceletMat);
+
+                facelet.position.copy(face.dir).multiplyScalar(0.5);
+                facelet.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), face.dir);
+                facelet.userData = { face: face.name };
+                cubie.add(facelet);
+            }
+        });
+
+        return cubie;
+    }
+
+    // Apply a cube state string to the cubie-based visualization
+    applyState(stateString) {
+        if (!stateString || stateString.length !== 54) {
+            console.error("Invalid cube state string:", stateString);
+            return false;
+        }
+
+        console.log("Applying state to cubies:", stateString);
+
+        const faces = {
+            U: stateString.substring(0, 9).split(''),
+            R: stateString.substring(9, 18).split(''),
+            F: stateString.substring(18, 27).split(''),
+            D: stateString.substring(27, 36).split(''),
+            L: stateString.substring(36, 45).split(''),
+            B: stateString.substring(45, 54).split(''),
+        };
+
+        const faceletsByFace = this.getFaceletsByFace();
+
+        for (const face in faces) {
+            const facelets = faceletsByFace[face];
+            const colors = faces[face];
+
+            if (facelets.length !== 9) {
+                console.error(`Face ${face} has ${facelets.length} facelets, expected 9.`);
+                continue;
+            }
+
+            for (let i = 0; i < 9; i++) {
+                const colorChar = colors[i];
+                if (this.colors[colorChar]) {
+                    facelets[i].material.color.setHex(this.colors[colorChar]);
+                } else {
+                    console.error(`Invalid color character '${colorChar}' for face ${face}`);
+                }
+            }
+        }
+
+        return true;
+    }
+
+    // Helper to get and sort facelets for each face
+    getFaceletsByFace() {
+        const facelets = { U: [], R: [], F: [], D: [], L: [], B: [] };
+
+        this.cubies.forEach(cubie => {
+            cubie.children.forEach(facelet => {
+                facelets[facelet.userData.face].push(facelet);
+            });
+        });
+
+        // Sort the facelets for each face to match Kociemba's order
+        for (const face in facelets) {
+            facelets[face].sort((a, b) => {
+                const posA = a.parent.position;
+                const posB = b.parent.position;
+
+                switch (face) {
+                    case 'U': return posA.z - posB.z || posA.x - posB.x;
+                    case 'D': return -posA.z - -posB.z || posA.x - posB.x;
+                    case 'R': return -posA.y - -posB.y || posA.z - posB.z;
+                    case 'L': return -posA.y - -posB.y || -posA.z - -posB.z;
+                    case 'F': return -posA.y - -posB.y || posA.x - posB.x;
+                    case 'B': return -posA.y - -posB.y || -posA.x - -posB.x;
+                    default: return 0;
+                }
+            });
+        }
+
+        return facelets;
+    }
+
+    // Perform a face rotation on cubies
+    rotateFace(face, direction, callback) {
+        if (this.isRotating) {
+            console.log("Already rotating, skipping");
+            return false;
+        }
+
+        console.log(`Rotating face ${face} in direction ${direction}`);
+        this.isRotating = true;
+        this.completeCallback = callback || null;
+
+        const axis = this.getFaceNormal(face);
+        const layer = (this.cubeOrder - 1) / 2;
+
+        this.activeCubies = this.cubies.filter(cubie => {
+            // Select cubies in the correct layer
+            const pos = cubie.position;
+            if (Math.abs(pos.x - layer * axis.x) < 0.1 && axis.x !== 0) return true;
+            if (Math.abs(pos.y - layer * axis.y) < 0.1 && axis.y !== 0) return true;
+            if (Math.abs(pos.z - layer * axis.z) < 0.1 && axis.z !== 0) return true;
+            return false;
+        });
+
+        if (this.activeCubies.length !== 9) {
+            console.error(`Expected 9 cubies for rotation, found ${this.activeCubies.length}`);
+        }
+
+        this.rotatorObject.rotation.set(0, 0, 0);
+        this.rotatorObject.updateMatrixWorld();
+
+        this.activeCubies.forEach(cubie => {
+            this.group.remove(cubie);
+            this.rotatorObject.add(cubie);
+        });
+
+        this.rotateAxisLocal = axis;
+        this.targetAngle = (Math.PI / 2) * direction;
+        this.rotatedAngle = 0;
+        this.lastTick = 0;
+
+        return true;
+    }
+
+    // Animate the rotation
+    updateRotation() {
+        if (!this.isRotating) return;
+
+        const now = Date.now();
+        const delta = (this.lastTick > 0) ? (now - this.lastTick) / 1000 : 0;
+        this.lastTick = now;
+
+        const speed = 3; // Radians per second
+        let angleToRotate = delta * speed;
+
+        if (this.rotatedAngle + angleToRotate >= Math.abs(this.targetAngle)) {
+            angleToRotate = Math.abs(this.targetAngle) - this.rotatedAngle;
+            this.rotatedAngle = Math.abs(this.targetAngle);
+        } else {
+            this.rotatedAngle += angleToRotate;
+        }
+
+        const rotationDirection = Math.sign(this.targetAngle);
+        this.rotatorObject.rotateOnWorldAxis(this.rotateAxisLocal, angleToRotate * rotationDirection);
+
+        if (this.rotatedAngle >= Math.abs(this.targetAngle)) {
+            this.finishRotation();
+        }
+    }
+
+    // Get the normal vector for a given face name
+    getFaceNormal(face) {
+        switch (face) {
+            case 'U': return new THREE.Vector3(0, 1, 0);
+            case 'D': return new THREE.Vector3(0, -1, 0);
+            case 'L': return new THREE.Vector3(-1, 0, 0);
+            case 'R': return new THREE.Vector3(1, 0, 0);
+            case 'F': return new THREE.Vector3(0, 0, 1);
+            case 'B': return new THREE.Vector3(0, 0, -1);
+            default: return new THREE.Vector3(0, 0, 0);
+        }
+    }
+
+    // Finish the rotation and update cubie states
+    finishRotation() {
+        console.log("Finishing rotation");
+
+        this.rotatorObject.updateMatrixWorld();
+
+        // Update cubie positions and rotations logically
+        this.activeCubies.forEach(cubie => {
+            const newMatrix = cubie.matrixWorld.clone();
+            this.rotatorObject.remove(cubie);
+            this.group.add(cubie);
+            cubie.applyMatrix4(newMatrix);
+
+            // Round positions to snap them into place
+            cubie.position.round();
+            cubie.rotation.setFromRotationMatrix(cubie.matrix);
+        });
+
+        try {
+            // Reset rotation state
+            this.isRotating = false;
+            this.activeCubies = [];
+            this.rotateAxisLocal = null;
+            this.targetAngle = 0;
+            this.rotatedAngle = 0;
+            this.lastTick = 0;
+
+            if (this.completeCallback) {
+                this.completeCallback();
+                this.completeCallback = null;
+            }
+        } catch (e) {
+            console.error("Error in finishRotation callback:", e);
+        }
+    }
 }
