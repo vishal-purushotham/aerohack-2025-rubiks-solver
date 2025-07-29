@@ -1,68 +1,60 @@
+// src/python/frontend/modules/keyHandler.js
+
 import { displayMove, showAlert } from "./ui.js";
 import { saveMove, undoLastMove } from "./action_utils.js";
 import { isAutoSolveMode, isReverseMode, setReverse } from "./modes.js";
-import { animate, getFace } from "./animations.js";
+import { animate, Faces } from "./animations.js";
 
 const keyMap = {
-    'R': 'R', 'L': 'L', 'U': 'U', 'D': 'D', 'F': 'F', 'B': 'B',
-    '1': '1', '2': '2', 'Z': 'Z'
+    'R': { face: Faces.RIGHT }, 'L': { face: Faces.LEFT }, 'M': { face: Faces.MID },
+    'U': { face: Faces.UP }, 'D': { face: Faces.DOWN }, 'F': { face: Faces.FRONT },
+    'B': { face: Faces.BACK }, '1': {}, '2': {}, 'Z': {}
 };
-  
+
 let lastKeyTime = 0;
-const keyCooldown = 100;
+const keyCooldown = 350; // ms, adjusted to match animation duration
+
 async function onDocumentKeyDown(event) {
     const key = event.key.toUpperCase();
-    const move = keyMap[key];
-
-    if (!move) return; // Ignore non-relevant keys
+    if (!keyMap[key]) return;
 
     const currentTime = Date.now();
-    if (!event.ctrlKey && move !== '1' && move !== '2' && (currentTime - lastKeyTime < keyCooldown)) {
-        showAlert("Too quick!", "in cooldown.");
+    if (!event.ctrlKey && !['1', '2'].includes(key) && (currentTime - lastKeyTime < keyCooldown)) {
+        showAlert("Animation in progress...");
         return;
     }
     lastKeyTime = currentTime;
 
-    if (isAutoSolveMode() && !['1', '2', 'Z'].includes(move)) {
-        showAlert("In autosolve mode:", "manual moves are temporarily disabled.");
+    if (isAutoSolveMode() && !['1', '2', 'Z'].includes(key)) {
+        showAlert("Solver is running. Manual moves disabled.");
         return;
     }
-
-    if (event.ctrlKey && move === 'Z') {
+    if (event.ctrlKey && key === 'Z') {
         undoLastMove();
         return;
     }
+    if (key === '1') { setReverse(false); return; }
+    if (key === '2') { setReverse(true); return; }
 
-    if (move === '1') {
-        setReverse(false);
-        return;
-    }
-
-    if (move === '2') {
-        setReverse(true);
-        return;
-    }
-
-    if (['R', 'L', 'U', 'D', 'F', 'B'].includes(move)) {
-        const finalMove = isReverseMode() ? move + "'" : move;
-        handleMove(finalMove, true);
-    }
-};
+    const finalMove = isReverseMode() ? key + "'" : key;
+    handleMove(finalMove, true);
+}
 
 export function initKeyHandler() {
   document.addEventListener("keydown", onDocumentKeyDown, false);
 }
 
 export async function handleMove(move, saveSession) {
+    const faceChar = move.charAt(0).toUpperCase();
+    const keyAction = keyMap[faceChar];
+    if (!keyAction || !keyAction.face) return false;
+
+    setReverse(move.includes("'"));
+
     try {
-        const face = getFace(move.charAt(0));
-        const isClockwise = !move.includes("'");
-
-        if (!face) return false;
-
         await Promise.all([
             displayMove(move),
-            animate(face, isClockwise),
+            animate(keyAction.face),
             saveMove(move, saveSession)
         ]);
         return true;

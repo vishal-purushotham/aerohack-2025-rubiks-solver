@@ -1,45 +1,47 @@
+// src/python/frontend/modules/solutionService.js
 import { resetMode } from './modes.js';
-import { makeAutoMove } from './action_utils.js'; 
+import { makeAutoMove } from './action_utils.js';
 import { getSolution } from './api.js';
 
+window.handleSolve = handleSolve;
 
-// TODO: Refactor to separate getting solution, animating, and handling display
 export async function handleSolve() {
     const solutionDisplay = document.getElementById("solution-display");
-    solutionDisplay.textContent = "";
+    const data = await getSolution();
 
-    let data = await getSolution();
-    let solutionString = null;
-    let parsedMoves = null;
-
-    // Try to use the expected structure from /solve
-    if (data && data.solutionString && data.parsedMoves) {
-        solutionString = data.solutionString;
-        parsedMoves = data.parsedMoves;
-    } else if (data && data.solution) {
-        // Fallback: if only a solution string is returned
-        solutionString = data.solution;
-        parsedMoves = solutionString.trim().split(/\s+/);
-    } else {
-        // Fallback: fetch from /get_cube_data
-        const cubeData = await fetch('/get_cube_data').then(r => r.json());
-        solutionString = cubeData.solution;
-        parsedMoves = solutionString.trim().split(/\s+/);
+    if (!data || !data.solutionString) {
+        solutionDisplay.textContent = "No solution found or error occurred.";
+        return;
+    }
+    
+    solutionDisplay.textContent = data.solutionString;
+    const parsedMoves = data.parsedMoves || data.solutionString.split(' ').filter(m => m);
+    
+    if (parsedMoves.length === 0 || parsedMoves[0] === '' || data.solutionString.toLowerCase().includes("solved")) {
+        return;
     }
 
     let i = 0;
     async function nextMove() {
-        if (!parsedMoves || parsedMoves.length === 0) return;
-        if (i < parsedMoves.length) {
-            const move = parsedMoves[i];
-            solutionDisplay.textContent += " " + move;
-            await makeAutoMove(move, true);
-            i++;
-            nextMove();
-        } else {
+        if (i >= parsedMoves.length) {
             resetMode();
+            return;
         }
+        const move = parsedMoves[i];
+        if (move) {
+            await makeAutoMove(move, false);
+        }
+        i++;
+        setTimeout(nextMove, 50);
     }
     nextMove();
 }
 
+export function getInverseSolution(solution) {
+    if (!solution || solution.toLowerCase().includes("solved")) return [];
+    return solution.split(' ').filter(m => m).reverse().map(move => {
+        if (move.includes("'")) return move.replace("'", "");
+        if (move.includes("2")) return move; // The inverse of a 180-degree turn is the same turn
+        return move + "'";
+    });
+}

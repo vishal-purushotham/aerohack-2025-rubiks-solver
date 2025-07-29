@@ -472,36 +472,35 @@ class Webcam:
                     )
 
     def get_result_notation(self):
-        """Convert all the sides and their BGR colors to cube notation."""
+        """
+        Convert all the sides and their BGR colors to the standard Kociemba notation string.
+        The order MUST BE URFDLB (Up, Right, Front, Down, Left, Back).
+        - Up: White
+        - Right: Red
+        - Front: Green
+        - Down: Yellow
+        - Left: Orange
+        - Back: Blue
+        """
         notation = dict(self.result_state)
         for side, preview in notation.items():
             for sticker_index, bgr in enumerate(preview):
                 notation[side][sticker_index] = color_detector.convert_bgr_to_notation(bgr)
 
-        # Join all the sides together into one single string.
-        # Order must be URFDLB (white, red, green, yellow, orange, blue)
-        combined = ''
-        for side in ['white', 'red', 'green', 'yellow', 'orange', 'blue']:
-            if side in notation:
-                combined += ''.join(notation[side])
+        # Standard Kociemba face order: U, R, F, D, L, B
+        # This corresponds to our color mapping: white, red, green, yellow, orange, blue
+        standard_face_order = ['white', 'red', 'green', 'yellow', 'orange', 'blue']
+        
+        combined_string = []
+        for side_color in standard_face_order:
+            if side_color in notation:
+                combined_string.append(''.join(notation[side_color]))
             else:
-                return ""  # Not all sides scanned
-        return combined
-
-    def state_already_solved(self):
-        """Find out if the cube hasn't been solved already."""
-        for side in ['white', 'red', 'green', 'yellow', 'orange', 'blue']:
-            if side not in self.result_state:
-                return False
-            # Get the center color of the current side.
-            center_bgr = self.result_state[side][4]
-
-            # Compare the center color to all neighbors. If we come across a
-            # different color, then we can assume the cube isn't solved yet.
-            for bgr in self.result_state[side]:
-                if center_bgr != bgr:
-                    return False
-        return True
+                # If a face wasn't scanned, we cannot generate a valid string.
+                print(f"ERROR: Face '{side_color}' was not scanned. Cannot generate valid cube string.")
+                return ""
+        
+        return "".join(combined_string)
 
     def run(self):
         """
