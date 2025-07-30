@@ -2,9 +2,9 @@
 
 import { scene } from './sceneManager.js';
 
-let cubesArray3D = []; // This will hold the logical state [x][y][z] of the cubelets
+let cubesArray3D = [];
 
-// Standard Western Color Scheme: U=White, F=Green, R=Red
+// Standard Western Color Scheme
 const materials = {
     'U': new THREE.MeshBasicMaterial({ color: 0xFFFFFF, side: THREE.DoubleSide }), // White
     'D': new THREE.MeshBasicMaterial({ color: 0xFFD700, side: THREE.DoubleSide }), // Yellow
@@ -15,27 +15,32 @@ const materials = {
     'black': new THREE.MeshBasicMaterial({ color: 0x222222, side: THREE.DoubleSide })
 };
 
+// This function correctly assigns materials to the 6 faces of a cubelet
+// based on its logical position (0, 1, or 2 on each axis).
 function generateMaterial(x, y, z) {
-    if (x === 1 && y === 1 && z === 1) return materials.black; // Center piece is hidden
-    
-    // Maps world coordinates to faces
+    // The center cubelet (1,1,1) is internal and all black.
+    if (x === 1 && y === 1 && z === 1) {
+        return materials.black;
+    }
+
+    // The order of materials for BoxGeometry is [+X, -X, +Y, -Y, +Z, -Z]
+    // which corresponds to [Right, Left, Up, Down, Front, Back]
     const materialArray = [
-        (x === 2) ? materials.R : materials.black, // Right (+X)
-        (x === 0) ? materials.L : materials.black, // Left (-X)
-        (y === 2) ? materials.U : materials.black, // Up (+Y)
-        (y === 0) ? materials.D : materials.black, // Down (-Y)
-        (z === 2) ? materials.F : materials.black, // Front (+Z)
-        (z === 0) ? materials.B : materials.black  // Back (-Z)
+        (x === 2) ? materials.R : materials.black, // Right face is at logical x=2
+        (x === 0) ? materials.L : materials.black, // Left face is at logical x=0
+        (y === 2) ? materials.U : materials.black, // Up face is at logical y=2
+        (y === 0) ? materials.D : materials.black, // Down face is at logical y=0
+        (z === 2) ? materials.F : materials.black, // Front face is at logical z=2
+        (z === 0) ? materials.B : materials.black  // Back face is at logical z=0
     ];
     return materialArray;
 }
 
 function createCubelet(x, y, z) {
     const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-    // Use logical coordinates (0,1,2) to generate materials
-    const cubeMaterial = generateMaterial(x, y, z); 
+    const cubeMaterial = generateMaterial(x, y, z);
     const cubelet = new THREE.Mesh(cubeGeometry, cubeMaterial);
-    // Set position based on logical coordinates
+    // Position the cubelet in 3D space based on its logical coordinates
     cubelet.position.set((x - 1) * 1.1, (y - 1) * 1.1, (z - 1) * 1.1);
     return cubelet;
 }
@@ -62,91 +67,10 @@ export function resetCubeObject() {
     cubesArray3D = [];
 }
 
-// --- Animation Functions (from your original code, for the solver animation) ---
-function rotateFaceForAnimation(axis, posVal, rad) {
-    const M = new THREE.Matrix4()['makeRotation' + axis.toUpperCase()](rad);
-    const cubePos = new THREE.Vector3();
-    for (let x = 0; x < 3; x++) {
-        for (let y = 0; y < 3; y++) {
-            for (let z = 0; z < 3; z++) {
-                // Use logical position, not world position, for selection
-                const logicalPos = (x - 1) * 1.1;
-                if (Math.abs(logicalPos - posVal) < 0.1) {
-                    cubesArray3D[x][y][z].applyMatrix4(M);
-                }
-            }
-        }
-    }
+// Dummy functions to prevent crashes from other files calling them.
+export function applyMove(move) { 
+    console.log(`DUMMY: applyMove(${move})`);
 }
-export const rotateXFace = (pos, rad) => rotateFaceForAnimation('x', pos, rad);
-export const rotateYFace = (pos, rad) => rotateFaceForAnimation('y', pos, rad);
-export const rotateZFace = (pos, rad) => rotateFaceForAnimation('z', pos, rad);
-
-
-// --- ROBUST, STATE-FIRST, NON-ANIMATED MOVE LOGIC FOR SCRAMBLING ---
-function rotateLayer(axis, slice, clockwise) {
-    const tempLayer = Array(3).fill(0).map(() => Array(3).fill(null));
-
-    if (axis === 'y') { // U, D, E moves
-        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) tempLayer[i][j] = cubesArray3D[i][slice][j];
-        const rotated = rotateFaceArray(tempLayer, clockwise);
-        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) cubesArray3D[i][slice][j] = rotated[i][j];
-    } else if (axis === 'x') { // R, L, M moves
-        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) tempLayer[i][j] = cubesArray3D[slice][i][j];
-        const rotated = rotateFaceArray(tempLayer, clockwise);
-        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) cubesArray3D[slice][i][j] = rotated[i][j];
-    } else if (axis === 'z') { // F, B, S moves
-        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) tempLayer[i][j] = cubesArray3D[i][j][slice];
-        const rotated = rotateFaceArray(tempLayer, clockwise);
-        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) cubesArray3D[i][j][slice] = rotated[i][j];
-    }
-}
-
-function rotateFaceArray(arr, clockwise) {
-    const n = 3;
-    const newArr = Array(n).fill(0).map(() => Array(n).fill(0));
-    for (let i = 0; i < n; i++) {
-        for (let j = 0; j < n; j++) {
-            if (clockwise) newArr[j][n - 1 - i] = arr[i][j];
-            else newArr[n - 1 - j][i] = arr[i][j];
-        }
-    }
-    return newArr;
-}
-
-function updateAllCubeletPositions() {
-    for (let x = 0; x < 3; x++) {
-        for (let y = 0; y < 3; y++) {
-            for (let z = 0; z < 3; z++) {
-                const cubelet = cubesArray3D[x][y][z];
-                cubelet.position.set((x - 1) * 1.1, (y - 1) * 1.1, (z - 1) * 1.1);
-                cubelet.rotation.set(0, 0, 0);
-                cubelet.updateMatrix();
-            }
-        }
-    }
-}
-
-export function applyMove(move) {
-    const faceChar = move.charAt(0).toUpperCase();
-    const isPrime = move.includes("'");
-    const isDouble = move.includes("2");
-    const turns = isDouble ? 2 : 1;
-
-    for (let i = 0; i < turns; i++) {
-        applySingleTurn(faceChar, isPrime);
-    }
-}
-
-function applySingleTurn(face, isPrime) {
-    const clockwise = !isPrime;
-    switch (face) {
-        case 'U': rotateLayer('y', 2, clockwise); break;
-        case 'D': rotateLayer('y', 0, !clockwise); break;
-        case 'R': rotateLayer('x', 2, clockwise); break;
-        case 'L': rotateLayer('x', 0, !clockwise); break;
-        case 'F': rotateLayer('z', 2, clockwise); break;
-        case 'B': rotateLayer('z', 0, !clockwise); break;
-    }
-    updateAllCubeletPositions();
-}
+export const rotateXFace = (pos, rad) => {};
+export const rotateYFace = (pos, rad) => {};
+export const rotateZFace = (pos, rad) => {};
