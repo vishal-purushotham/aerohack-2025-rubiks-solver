@@ -72,6 +72,92 @@ class Webcam:
         self.current_color_to_calibrate_index = 0
         self.done_calibrating = False
 
+        # Manual color correction mode
+        self.manual_correction_mode = False
+        self.available_colors = ['white', 'red', 'green', 'yellow', 'orange', 'blue']
+        self.color_bgr_values = {
+            'white': (255, 255, 255),
+            'red': (0, 0, 255),
+            'green': (0, 255, 0),
+            'yellow': (0, 255, 255),
+            'orange': (0, 165, 255),
+            'blue': (255, 0, 0)
+        }
+        
+        # For manual correction, we need to track which colors correspond to which notation
+        self.color_to_notation = {
+            'white': 'U',
+            'red': 'R',
+            'green': 'F',
+            'yellow': 'D',
+            'orange': 'L',
+            'blue': 'B'
+        }
+
+    def mouse_callback(self, event, x, y, flags, param):
+        """Handle mouse clicks for manual color correction."""
+        if event == cv2.EVENT_LBUTTONDOWN and self.manual_correction_mode:
+            # Check if click is in preview area
+            preview_x = STICKER_AREA_OFFSET
+            preview_y = STICKER_AREA_OFFSET
+            preview_width = STICKER_AREA_TILE_SIZE * 3 + STICKER_AREA_TILE_GAP * 2
+            preview_height = STICKER_AREA_TILE_SIZE * 3 + STICKER_AREA_TILE_GAP * 2
+            
+            if (preview_x <= x <= preview_x + preview_width and 
+                preview_y <= y <= preview_y + preview_height):
+                
+                # Calculate which tile was clicked
+                rel_x = x - preview_x
+                rel_y = y - preview_y
+                
+                # Account for gaps between tiles
+                col = min(2, rel_x // (STICKER_AREA_TILE_SIZE + STICKER_AREA_TILE_GAP))
+                row = min(2, rel_y // (STICKER_AREA_TILE_SIZE + STICKER_AREA_TILE_GAP))
+                
+                # Make sure click is actually on a tile, not in the gap
+                tile_start_x = col * (STICKER_AREA_TILE_SIZE + STICKER_AREA_TILE_GAP)
+                tile_start_y = row * (STICKER_AREA_TILE_SIZE + STICKER_AREA_TILE_GAP)
+                
+                if (tile_start_x <= rel_x <= tile_start_x + STICKER_AREA_TILE_SIZE and
+                    tile_start_y <= rel_y <= tile_start_y + STICKER_AREA_TILE_SIZE):
+                    
+                    sticker_index = row * 3 + col
+                    self.cycle_sticker_color(sticker_index)
+
+    def cycle_sticker_color(self, sticker_index):
+        """Cycle through available colors for a specific sticker."""
+        if 0 <= sticker_index < 9:
+            # Get current color of this sticker
+            current_bgr = self.preview_state[sticker_index]
+            
+            # Handle case where current_bgr might be a string (from previous errors)
+            if isinstance(current_bgr, str):
+                # Convert string back to a proper BGR value
+                current_bgr = (255, 255, 255)  # Default to white
+            elif not isinstance(current_bgr, (tuple, list)) or len(current_bgr) != 3:
+                # Handle invalid BGR values
+                current_bgr = (255, 255, 255)  # Default to white
+            
+            # Find current color in our palette
+            current_color_name = None
+            for color_name, bgr_value in self.color_bgr_values.items():
+                if tuple(current_bgr) == tuple(bgr_value):
+                    current_color_name = color_name
+                    break
+            
+            # Get next color in cycle
+            if current_color_name in self.available_colors:
+                current_index = self.available_colors.index(current_color_name)
+                next_index = (current_index + 1) % len(self.available_colors)
+            else:
+                # If current color not found, start from white
+                next_index = 0
+            
+            next_color_name = self.available_colors[next_index]
+            # IMPORTANT: Store BGR tuple, not string!
+            self.preview_state[sticker_index] = self.color_bgr_values[next_color_name]
+            print(f"Tile {sticker_index} changed to {next_color_name}")
+
     def draw_stickers(self, stickers, offset_x, offset_y):
         """Draws the given stickers onto the given frame."""
         index = -1
@@ -285,7 +371,26 @@ class Webcam:
     def update_snapshot_state(self):
         """Update the snapshot state based on the current preview state."""
         self.snapshot_state = list(self.preview_state)
-        center_color_name = color_detector.get_closest_color(self.snapshot_state[4])['color_name']
+        
+        # Ensure all elements in snapshot_state are proper BGR tuples
+        for i in range(len(self.snapshot_state)):
+            if isinstance(self.snapshot_state[i], str):
+                # Convert string back to BGR tuple (this shouldn't happen with fixed manual mode)
+                self.snapshot_state[i] = (255, 255, 255)  # Default to white
+            elif not isinstance(self.snapshot_state[i], (tuple, list)) or len(self.snapshot_state[i]) != 3:
+                self.snapshot_state[i] = (255, 255, 255)  # Default to white
+        
+        try:
+            center_color_info = color_detector.get_closest_color(self.snapshot_state[4])
+            if isinstance(center_color_info, dict) and 'color_name' in center_color_info:
+                center_color_name = center_color_info['color_name']
+            else:
+                print(f"Warning: Invalid color detection result for center sticker: {center_color_info}")
+                center_color_name = 'white'  # Default fallback
+        except Exception as e:
+            print(f"Error detecting center color: {e}")
+            center_color_name = 'white'  # Default fallback
+            
         self.result_state[center_color_name] = self.snapshot_state
         self.draw_snapshot_stickers()
 
@@ -348,8 +453,20 @@ class Webcam:
                 self.render_text(text, (int(self.width / 2), y), size=font_size, anchor='mt')
         else:
             current_color = self.colors_to_calibrate[self.current_color_to_calibrate_index]
-            text = f'Calibrate the {current_color} side'
-            self.render_text(text, (int(self.width / 2), offset_y), size=font_size, anchor='mt')
+            messages = [
+                f'Calibrate the {current_color} side',
+                'Position center sticker in detection area and press SPACE',
+                f'Or use shortcut: Ctrl+{current_color[0].upper()} to force {current_color}',
+                'Shortcuts: Ctrl+W(white) Ctrl+R(red) Ctrl+G(green)',
+                'Ctrl+Y(yellow) Ctrl+O(orange) Ctrl+B(blue)'
+            ]
+            
+            for index, text in enumerate(messages):
+                _, textsize_height = self.get_text_size(text, 14 if index > 0 else font_size)
+                y = offset_y + (textsize_height + 5) * index
+                color = (255, 255, 255) if index <= 1 else (0, 255, 255)  # Yellow for shortcuts
+                size = font_size if index <= 1 else 14
+                self.render_text(text, (int(self.width / 2), y), color=color, size=size, anchor='mt')
 
     def draw_calibrated_colors(self):
         """Display all the colors that are calibrated while in calibrate mode."""
@@ -385,7 +502,58 @@ class Webcam:
         self.current_color_to_calibrate_index = 0
         self.done_calibrating = False
 
+    def force_calibrate_color(self, color_name):
+        """Force calibrate the current color with a predefined BGR value."""
+        if color_name in self.colors_to_calibrate:
+            # Use predefined BGR values for forced calibration
+            predefined_bgr = {
+                'white': (255, 255, 255),
+                'red': (0, 0, 255),
+                'green': (0, 255, 0),
+                'yellow': (0, 255, 255),
+                'orange': (0, 165, 255),
+                'blue': (255, 0, 0)
+            }
+            
+            current_color = self.colors_to_calibrate[self.current_color_to_calibrate_index]
+            if current_color == color_name:
+                # Force the calibration with predefined color
+                self.calibrated_colors[current_color] = predefined_bgr[color_name]
+                self.current_color_to_calibrate_index += 1
+                self.done_calibrating = self.current_color_to_calibrate_index == len(self.colors_to_calibrate)
+                
+                print(f"✓ Forced calibration: {color_name} = {predefined_bgr[color_name]}")
+                
+                if self.done_calibrating:
+                    color_detector.set_cube_color_pallete(self.calibrated_colors)
+                    config.set_setting(CUBE_PALETTE, color_detector.cube_color_palette)
+                    print("✓ Calibration complete!")
+            else:
+                print(f"Warning: Currently calibrating {current_color}, not {color_name}")
+        else:
+            print(f"Error: {color_name} is not a valid color for calibration")
+
+    def draw_manual_correction_instructions(self):
+        """Draw instructions for manual color correction mode."""
+        if self.manual_correction_mode:
+            y_start = 50
+            instructions = [
+                "MANUAL CORRECTION MODE",
+                "Click on any tile in preview to cycle colors",
+                "Available: White → Red → Green → Yellow → Orange → Blue",
+                "Press M to exit manual mode"
+            ]
+            
+            for i, instruction in enumerate(instructions):
+                color = (0, 255, 255) if i == 0 else (255, 255, 255)  # Yellow for title, white for others
+                size = 20 if i == 0 else 16
+                self.render_text(instruction, (20, y_start + i * 25), color=color, size=size)
+
     def draw_current_language(self):
+        """Draw the current language."""
+        margin = self.ui_config.get('margin', 20)
+        text = config.get_setting('locale', 'en').upper() + ' | ' + LOCALES[config.get_setting('locale', 'en')]
+        self.render_text(text, (margin, self.height - margin), size=16, anchor='lb')
         text = f'Language: {LOCALES[config.get_setting("locale", "en")]}'
         offset = 20
         self.render_text(text, (self.width - offset, offset), anchor='rt')
@@ -482,25 +650,45 @@ class Webcam:
         - Left: Orange
         - Back: Blue
         """
-        notation = dict(self.result_state)
-        for side, preview in notation.items():
-            for sticker_index, bgr in enumerate(preview):
-                notation[side][sticker_index] = color_detector.convert_bgr_to_notation(bgr)
+        try:
+            notation = dict(self.result_state)
+            for side, preview in notation.items():
+                for sticker_index, bgr in enumerate(preview):
+                    try:
+                        notation[side][sticker_index] = color_detector.convert_bgr_to_notation(bgr)
+                    except (KeyError, IndexError, TypeError) as e:
+                        print(f"Warning: Could not convert color {bgr} for side {side}, sticker {sticker_index}: {e}")
+                        # Use a fallback notation
+                        notation[side][sticker_index] = 'U'  # Default to white/up
 
-        # Standard Kociemba face order: U, R, F, D, L, B
-        # This corresponds to our color mapping: white, red, green, yellow, orange, blue
-        standard_face_order = ['white', 'red', 'green', 'yellow', 'orange', 'blue']
-        
-        combined_string = []
-        for side_color in standard_face_order:
-            if side_color in notation:
-                combined_string.append(''.join(notation[side_color]))
+            # Standard Kociemba face order: U, R, F, D, L, B
+            # This corresponds to our color mapping: white, red, green, yellow, orange, blue
+            standard_face_order = ['white', 'red', 'green', 'yellow', 'orange', 'blue']
+            
+            combined_string = []
+            for side_color in standard_face_order:
+                if side_color in notation:
+                    face_string = ''.join(notation[side_color])
+                    if len(face_string) == 9:  # Each face should have 9 stickers
+                        combined_string.append(face_string)
+                    else:
+                        print(f"ERROR: Face '{side_color}' has {len(face_string)} stickers, expected 9.")
+                        return ""
+                else:
+                    # If a face wasn't scanned, we cannot generate a valid string.
+                    print(f"ERROR: Face '{side_color}' was not scanned. Cannot generate valid cube string.")
+                    return ""
+            
+            result = "".join(combined_string)
+            if len(result) == 54:
+                return result
             else:
-                # If a face wasn't scanned, we cannot generate a valid string.
-                print(f"ERROR: Face '{side_color}' was not scanned. Cannot generate valid cube string.")
+                print(f"ERROR: Generated string has {len(result)} characters, expected 54.")
                 return ""
-        
-        return "".join(combined_string)
+                
+        except Exception as e:
+            print(f"ERROR in get_result_notation: {e}")
+            return ""
 
     def state_already_solved(self):
         """Check if the scanned cube is already in solved state."""
@@ -514,6 +702,10 @@ class Webcam:
 
         Returns a string of the scanned state in rubik's cube notation.
         """
+        # Set up mouse callback for manual correction
+        cv2.namedWindow("AeroHack 2025 - Professional Rubik's Cube Solver")
+        cv2.setMouseCallback("AeroHack 2025 - Professional Rubik's Cube Solver", self.mouse_callback)
+        
         while True:
             _, frame = self.cam.read()
             self.frame = frame
@@ -525,7 +717,18 @@ class Webcam:
             if key == escape_key:
                 break
 
-            if not self.calibrate_mode:
+            # Toggle manual correction mode with 'M' key
+            if key == ord('m') or key == ord('M'):
+                self.manual_correction_mode = not self.manual_correction_mode
+                print(f"Manual correction mode: {'ON' if self.manual_correction_mode else 'OFF'}")
+                
+                # When entering manual correction mode, ensure preview_state contains valid BGR tuples
+                if self.manual_correction_mode:
+                    for i in range(len(self.preview_state)):
+                        if not isinstance(self.preview_state[i], (tuple, list)) or len(self.preview_state[i]) != 3:
+                            self.preview_state[i] = (255, 255, 255)  # Default to white BGR
+
+            if not self.calibrate_mode and not self.manual_correction_mode:
                 # Update the snapshot when space bar is pressed.
                 # Check for space key
                 space_key = self.controls_config.get('space_key', 32)
@@ -537,10 +740,31 @@ class Webcam:
                     next_locale = get_next_locale(config.get_setting('locale', 'en'))
                     config.set_setting('locale', next_locale)
 
-            # Toggle calibrate mode.
-            if key == ord(CALIBRATE_MODE_KEY):
+            # Toggle calibrate mode (disable if in manual correction mode).
+            if key == ord(CALIBRATE_MODE_KEY) and not self.manual_correction_mode:
                 self.reset_calibrate_mode()
                 self.calibrate_mode = not self.calibrate_mode
+
+            # Color override shortcuts during calibration mode
+            if self.calibrate_mode and not self.done_calibrating:
+                # Ctrl+W to force white color during calibration
+                if key == 23:  # Ctrl+W (ASCII code for Ctrl+W)
+                    self.force_calibrate_color('white')
+                # Ctrl+R to force red color during calibration  
+                elif key == 18:  # Ctrl+R
+                    self.force_calibrate_color('red')
+                # Ctrl+G to force green color during calibration
+                elif key == 7:   # Ctrl+G
+                    self.force_calibrate_color('green')
+                # Ctrl+Y to force yellow color during calibration
+                elif key == 25:  # Ctrl+Y
+                    self.force_calibrate_color('yellow')
+                # Ctrl+O to force orange color during calibration
+                elif key == 15:  # Ctrl+O
+                    self.force_calibrate_color('orange')
+                # Ctrl+B to force blue color during calibration
+                elif key == 2:   # Ctrl+B
+                    self.force_calibrate_color('blue')
 
             grayFrame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
             blurredFrame = cv2.blur(grayFrame, (3, 3))
@@ -568,6 +792,12 @@ class Webcam:
             if self.calibrate_mode:
                 self.draw_current_color_to_calibrate()
                 self.draw_calibrated_colors()
+            elif self.manual_correction_mode:
+                self.draw_manual_correction_instructions()
+                self.draw_preview_stickers()
+                self.draw_snapshot_stickers()
+                self.draw_scanned_sides()
+                self.draw_2d_cube_state()
             else:
                 self.draw_current_language()
                 self.draw_preview_stickers()

@@ -86,8 +86,22 @@ class ColorDetection:
             'orange': 'L',
             'yellow': 'D'
         }
-        color_name = self.get_closest_color(bgr)['color_name']
-        return notations[color_name]
+        
+        try:
+            closest_color = self.get_closest_color(bgr)
+            if isinstance(closest_color, dict) and 'color_name' in closest_color:
+                color_name = closest_color['color_name']
+                if color_name in notations:
+                    return notations[color_name]
+                else:
+                    print(f"Warning: Unknown color name '{color_name}', defaulting to white")
+                    return 'U'
+            else:
+                print(f"Warning: Invalid color detection result {closest_color}, defaulting to white")
+                return 'U'
+        except Exception as e:
+            print(f"Error in convert_bgr_to_notation with BGR {bgr}: {e}")
+            return 'U'  # Default to white/up
 
     def set_cube_color_pallete(self, palette):
         """
