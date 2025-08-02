@@ -211,3 +211,48 @@ System Usage:
 
 # Global performance monitor instance
 perf_monitor = PerformanceMonitor()
+
+if __name__ == "__main__":
+    """Generate sample performance data and save to JSON file."""
+    import random
+    
+    print("🎯 Generating sample performance data...")
+    
+    # Simulate 1000 solve sessions with realistic data
+    for i in range(1000):
+        # Start timing
+        perf_monitor.start_solve_timing()
+        
+        # Simulate solve time (0.5 to 5.0 seconds)
+        solve_time = random.uniform(0.5, 5.0)
+        time.sleep(0.001)  # Smaller delay to speed up generation
+        
+        # Generate realistic solution string with move count
+        move_count = random.randint(15, 25)
+        sample_moves = ["R", "U", "R'", "U'", "F", "D", "L", "B", "D'", "F'", "L'", "B'"]
+        solution = " ".join(random.choices(sample_moves, k=move_count))
+        solution += f" ({move_count}f)"
+        
+        # Record the solve
+        stats = perf_monitor.end_solve_timing(solution)
+        
+        if i % 100 == 0:
+            print(f"  Generated {i+1}/1000 solve records...")
+    
+    print("\n" + perf_monitor.get_performance_summary())
+    
+    # Save to JSON file
+    filename = 'performance_stats.json'
+    if perf_monitor.save_stats(filename):
+        print(f"\n✅ Performance data saved to {filename}")
+        print("📊 You can now create histograms from this data!")
+        
+        # Show what data is available
+        stats = perf_monitor.get_current_stats()
+        print(f"\nData available for histograms:")
+        print(f"  - Solve times: {len(perf_monitor.stats['solve_times'])} values")
+        print(f"  - Move counts: {len(perf_monitor.stats['move_counts'])} values")
+        print(f"  - Memory usage: {len(perf_monitor.stats['memory_usage'])} values")
+        print(f"  - CPU usage: {len(perf_monitor.stats['cpu_usage'])} values")
+    else:
+        print("\n❌ Failed to save performance data")

@@ -69,9 +69,16 @@ class AeroHackARSolver:
         try:
             # Start professional QBR scanning with state management
             print("Initializing professional computer vision pipeline...")
-            cube_state = self.webcam.run_detection_loop()
+            cube_state = self.webcam.run()
             
-            if cube_state is None:
+            # Check for error codes from the scanner
+            if cube_state == E_INCORRECTLY_SCANNED:
+                print("❌ Cube was incorrectly scanned. Please try again.")
+                return None
+            elif cube_state == E_ALREADY_SOLVED:
+                print("✅ Cube is already solved!")
+                return None
+            elif cube_state is None or not isinstance(cube_state, str):
                 print("❌ Scanning cancelled or failed")
                 return None
             
@@ -88,6 +95,11 @@ class AeroHackARSolver:
     
     def _validate_cube_state(self, cube_state: str) -> bool:
         """Validate cube state using professional algorithms."""
+        # First check if it's actually a string
+        if not isinstance(cube_state, str):
+            print(f"Invalid type: expected string, got {type(cube_state)}")
+            return False
+            
         expected_length = self.colors_config.get('total_stickers', 54)
         if not cube_state or len(cube_state) != expected_length:
             print(f"Invalid length: {len(cube_state) if cube_state else 0}, expected 54")

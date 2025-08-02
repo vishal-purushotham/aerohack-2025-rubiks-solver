@@ -502,6 +502,12 @@ class Webcam:
         
         return "".join(combined_string)
 
+    def state_already_solved(self):
+        """Check if the scanned cube is already in solved state."""
+        solved_state = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
+        current_notation = self.get_result_notation()
+        return current_notation == solved_state
+
     def run(self):
         """
         Open up the webcam and present the user with the Qbr user interface.
